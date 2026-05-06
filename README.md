@@ -1,107 +1,81 @@
-# fast-template-automacao
+# fast-triagem-rh
 
-Template-base para novos projetos de automação interna na **Fast Sistemas Construtivos**.
+Automação de triagem de candidatos com IA para o time de Recrutamento & Seleção da Fast Sistemas Construtivos.
 
-Padroniza estrutura de pastas, ferramentas, documentação e fluxo de trabalho — pra cada automação nova nascer já organizada e profissional.
+Coleta CVs de múltiplas plataformas (PandaPé, Indeed, Catho, Engenha, LinkedIn), analisa automaticamente com a Claude API contra os critérios de cada vaga e gera uma planilha ranqueada com os melhores candidatos — liberando a Karina para focar na decisão humana, não na leitura braçal de currículos.
 
----
+## Stack
 
-## Como usar
+- Python 3.11+
+- Claude API (Anthropic) — análise e ranqueamento de CVs
+- pdfplumber + python-docx — extração de texto de PDF e Word
+- gspread / openpyxl — escrita na planilha do time
+- Pydantic — validação de critérios e respostas da IA
+- Loguru — logging estruturado
+- httpx + Tenacity — HTTP com retry
 
-### 1. Criar repositório novo a partir desse template
-
-No GitHub, clica em **Use this template** → **Create a new repository**.
-Nomeia algo como `fast-<nome-da-automacao>` (privado).
-
-### 2. Clonar localmente
-
-```bash
-git clone git@github.com:<seu-usuario>/fast-<nome-da-automacao>.git
-cd fast-<nome-da-automacao>
-```
-
-### 3. Inicializar o projeto
+## Setup
 
 ```bash
-# Linux/Mac:
-./init.sh
-
-# Windows (PowerShell):
-.\init.ps1
+make install
+cp .env.example .env
+# editar .env com ANTHROPIC_API_KEY e credenciais do Google Sheets
 ```
 
-O script vai te perguntar:
-- Nome do projeto
-- Stack (Python ou Node)
-- Descrição curta
+## Uso
 
-E vai:
-- Mover o starter da stack escolhida pra raiz
-- Atualizar `pyproject.toml`/`package.json` com o nome certo
-- Gerar README do projeto
-- Configurar pre-commit hooks
-- Fazer o primeiro commit estruturado
+```bash
+# Triagem de uma vaga
+python -m fast_triagem_rh --vaga criterios.yaml --cvs pasta/cvs/
 
-### 4. Estruturar com Claude Code
-
-Abre o VS Code, roda `claude` no terminal, e chama:
-
-```
-/novo-projeto
+# Onde:
+# criterios.yaml — arquivo com os critérios da vaga (ver exemplo em docs/)
+# pasta/cvs/     — pasta com PDFs/Word + exportação do PandaPé
 ```
 
-Isso te entrevista pra preencher CLAUDE.md, PROJECT_BRIEF.md, etc.
+## Comandos de desenvolvimento
 
-### 5. Continuar com o fluxo padrão
-
-```
-/planejar-automacao    # arquitetura
-/gerar-tarefas         # backlog
-# implementa
-```
-
----
-
-## O que vem no template
-
-```
-fast-template-automacao/
-├── _contexto/                  # memória compartilhada (empresa + padrões)
-├── _starter/
-│   ├── python/                 # starter Python (uv, ruff, pytest)
-│   └── node/                   # starter Node (ESM, eslint, vitest)
-├── docs/                       # templates de PROJECT_BRIEF, RUNBOOK, ADR, etc
-├── .claude/                    # comandos e skills do Claude Code
-├── .github/                    # CI, templates de issue/PR
-├── init.sh                     # bootstrap interativo (Linux/Mac)
-├── init.ps1                    # bootstrap interativo (Windows)
-├── .pre-commit-config.yaml     # gitleaks, lint, conventional commits
-├── CLAUDE.md
-├── CONTRIBUTING.md
-├── SECURITY.md
-└── .env.example
+```bash
+make run        # executa a automação
+make test       # roda testes
+make lint       # roda lint
+make format     # formata código
 ```
 
----
+## Estrutura
 
-## Princípios
+```
+src/fast_triagem_rh/
+├── __init__.py
+├── __main__.py         # ponto de entrada CLI
+├── pipeline.py         # orquestrador principal
+├── analyzer.py         # integração Claude API
+├── parsers/
+│   ├── pdf.py          # extração de PDF
+│   ├── docx.py         # extração de Word
+│   └── pandape.py      # leitura de exportação PandaPé
+├── output/
+│   └── sheets.py       # escrita na planilha
+├── logger.py           # logger estruturado
+└── envelope.py         # envelope de execução
 
-- **Clareza sobre esperteza.** Código de automação é lido por muitas pessoas no decorrer do tempo.
-- **Falha visível, nunca silenciosa.** Logs estruturados e envelope de execução.
-- **Segredos nunca no código.** `.env` local + gerenciador de secrets em produção.
-- **Convenção sobre configuração.** Quanto menos decidir caso a caso, melhor.
-- **Documentação operacional obrigatória antes de produção.** RUNBOOK preenchido = critério de release.
+tests/
+└── test_smoke.py
+```
 
----
+## Variáveis de ambiente
 
-## Manutenção do template
+| Variável | O que é |
+|---|---|
+| `ANTHROPIC_API_KEY` | Chave da Claude API |
+| `GOOGLE_SHEETS_CREDENTIALS` | Path para credenciais Google (JSON) |
+| `GOOGLE_SHEETS_ID` | ID da planilha de triagem |
+| `ENVIRONMENT` | development / staging / production |
+| `LOG_LEVEL` | DEBUG / INFO / WARNING / ERROR |
 
-Quando esse template evoluir, novos projetos a partir daqui pegam o estado atual. Projetos antigos **não** recebem atualização automática — quando uma melhoria for crítica, é caso a caso.
+## Documentação
 
-Pra abstrações que devem se propagar entre todos os projetos (logger, retry, integração com APIs Fast), usar a biblioteca compartilhada `fast-utils` (a ser criada na Fase 3 da reestruturação).
-
----
-
-## Dúvidas
-
-Esse template é mantido por Clara Barbosa. Veja `CONTRIBUTING.md` pra contribuir.
+- [PROJECT_BRIEF.md](PROJECT_BRIEF.md) — contexto e critérios de aceite do MVP
+- [PROCESS_MAP.md](PROCESS_MAP.md) — processo atual vs automatizado
+- [SOLUTION_DESIGN.md](SOLUTION_DESIGN.md) — arquitetura técnica
+- [TASKS.md](TASKS.md) — backlog e progresso

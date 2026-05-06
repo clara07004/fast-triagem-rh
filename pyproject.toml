@@ -1,0 +1,68 @@
+[project]
+name = "fast_triagem_rh"
+version = "0.1.0"
+description = "Triagem inteligente de candidatos com IA para o time de R&S da Fast Sistemas Construtivos.Integra PandaPé, Indeed, Catho e LinkedIn para coletar perfis, analisá-los automaticamente contra os critérios de cada vaga e ranquear os mais aderentes. Gera sugestões de perguntas de entrevista por candidato e atualiza o status no funil - liberando o time para focar no que importa: a decisão humana sobre os melhores perfis."
+authors = [
+    { name = "Clara Barbosa", email = "clara.barbosa@fastdrywall.com.br" }
+]
+requires-python = ">=3.11"
+readme = "README.md"
+
+dependencies = [
+    "loguru>=0.7.2",
+    "python-dotenv>=1.0.1",
+    "httpx>=0.27.0",
+    "tenacity>=8.5.0",
+    "pydantic>=2.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+    "pre-commit>=3.7.0",
+]
+
+[project.scripts]
+fast_triagem_rh = "fast_triagem_rh.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fast_triagem_rh"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+    "N",      # pep8-naming
+]
+ignore = ["E501"]  # line-too-long â€” ruff format jÃ¡ cuida
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --cov=src --cov-report=term-missing"

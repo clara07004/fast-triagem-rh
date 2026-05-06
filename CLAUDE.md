@@ -2,35 +2,48 @@
 
 > Esse arquivo é o ponto de entrada do contexto pro Claude Code. Quando você clonar esse template pra começar um projeto novo, **edite as seções marcadas com `[PREENCHER]`** ou rode `/novo-projeto` que faz isso por entrevista.
 
-## Sobre esse repositório
+## Sobre esse projeto
 
-Template-base padronizado pra novos projetos de automação interna na Fast Sistemas Construtivos. Cada novo projeto é criado a partir desse template (clone + `init.sh`), vira repositório próprio no GitHub e segue essas convenções.
+Automação de triagem de candidatos para o time de Recrutamento & Seleção da Fast. Coleta CVs de múltiplas plataformas (PandaPé, Indeed, Catho, Engenha, LinkedIn), analisa automaticamente com IA contra os critérios de cada vaga e gera uma planilha ranqueada com os melhores candidatos, justificativas e pontos de atenção.
 
-**Este arquivo é o template — não edite aqui se quiser que mudanças se propaguem pra projetos.** Edições no template valem só pra projetos criados a partir daqui em diante.
-
-## O que é esse projeto (preenchido após init)
-
-[PREENCHER] — uma a duas linhas descrevendo o que essa automação faz e pra quem.
+**Operadora:** Karina Salles, Coordenadora de R&S (não-técnica — interface deve ser simples).
+**Mantenedora:** Clara Barbosa.
 
 ## Objetivo
 
-[PREENCHER] — qual problema essa automação resolve e qual ganho concreto entrega (horas/semana economizadas, erros eliminados, escala viabilizada).
+Eliminar 3 a 5 horas semanais de triagem manual, reduzindo o tempo de entrega de perfis aos gestores e recuperando o SLA de 10 dias que hoje é sistematicamente ultrapassado.
 
 ## Stack
 
-[PREENCHER após escolha no `init.sh`] — Python ou Node + dependências principais.
+Python 3.11+ com API externa de IA (Claude). Dependências principais: pdfplumber, python-docx, openpyxl/gspread, httpx, pydantic, loguru.
 
 ## Integrações
 
-[PREENCHER] — APIs internas Fast (SAP, Sults, Piperun, Nasajon, portal de orçamentos), serviços externos, MCPs configurados.
+| Sistema | Tipo | Observação |
+|---|---|---|
+| PandaPé | Exportação de dados | Plataforma principal — tem exportação estruturada |
+| Indeed, Catho, Engenha, LinkedIn | Leitura de PDF/Word | CVs chegam como arquivos |
+| Google Sheets | Escrita | Planilha de triagem que Karina já usa |
+| Claude API (Anthropic) | IA | Análise e ranqueamento de perfis |
 
 ## Restrições
 
-[PREENCHER] — restrições de segurança, LGPD, ferramentas obrigatórias/proibidas.
+- Interface de operação deve ser simples — Karina não é técnica. Karina informará os critérios de cada vaga como input estruturado (formato a definir).
+- CVs geralmente não contêm dados sensíveis → API externa de IA permitida. Tratar dados sensíveis como evolução futura (LGPD).
+- Human-in-the-loop obrigatório: Karina sempre revisa e pré-aprova antes de encaminhar perfis aos gestores.
+- **Prazo:** 6 dias para MVP (qualidade prioritária sobre prazo).
 
 ## Critérios de sucesso
 
-[PREENCHER] — como saber que está funcionando bem (métricas, indicadores).
+- Karina consegue rodar a triagem de uma vaga sem ajuda técnica.
+- Planilha gerada tem candidatos ranqueados com: justificativa, contato, pontos positivos e negativos.
+- Tempo de triagem por vaga reduz visivelmente (baseline a medir com Karina).
+- SLA de 10 dias para entrega de perfis começa a ser cumprido.
+
+## A confirmar com Karina
+
+- Critérios base comuns a todas as vagas (ex: localização, tipo de contrato).
+- Volume médio de vagas por semana e candidatos por vaga (sem dashboard hoje).
 
 ## Manutenção
 
