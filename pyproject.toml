@@ -1,7 +1,7 @@
 [project]
 name = "fast_triagem_rh"
 version = "0.1.0"
-description = "Triagem inteligente de candidatos com IA para o time de R&S da Fast Sistemas Construtivos.Integra PandaPé, Indeed, Catho e LinkedIn para coletar perfis, analisá-los automaticamente contra os critérios de cada vaga e ranquear os mais aderentes. Gera sugestões de perguntas de entrevista por candidato e atualiza o status no funil - liberando o time para focar no que importa: a decisão humana sobre os melhores perfis."
+description = "Triagem inteligente de candidatos com IA para o time de R&S da Fast Sistemas Construtivos.Integra PandaPï¿½, Indeed, Catho e LinkedIn para coletar perfis, analisï¿½-los automaticamente contra os critï¿½rios de cada vaga e ranquear os mais aderentes. Gera sugestï¿½es de perguntas de entrevista por candidato e atualiza o status no funil - liberando o time para focar no que importa: a decisï¿½o humana sobre os melhores perfis."
 authors = [
     { name = "Clara Barbosa", email = "clara.barbosa@fastdrywall.com.br" }
 ]
@@ -14,6 +14,10 @@ dependencies = [
     "httpx>=0.27.0",
     "tenacity>=8.5.0",
     "pydantic>=2.7.0",
+    "anthropic>=0.28.0",
+    "pdfplumber>=0.11.0",
+    "python-docx>=1.1.0",
+    "openpyxl>=3.1.0",
 ]
 
 [project.optional-dependencies]
