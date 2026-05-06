@@ -1,0 +1,24 @@
+name: Tarefa operacional
+description: Manutenção, atualização de dependência, ajuste de configuração
+title: "[chore]: "
+labels: [chore]
+body:
+  - type: textarea
+    id: o-que
+    attributes:
+      label: O que precisa ser feito
+      description: Descrição da tarefa. Não é bug nem feature — é manutenção.
+    validations:
+      required: true
+
+  - type: textarea
+    id: por-que
+    attributes:
+      label: Por quê
+      description: Motivo da tarefa. Vencimento de cert, aviso de deprecation, dívida técnica?
+
+  - type: input
+    id: prazo
+    attributes:
+      label: Prazo (se houver)
+      placeholder: 2026-05-15

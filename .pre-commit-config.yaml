@@ -1,0 +1,59 @@
+# Pre-commit hooks padrão pra projetos Fast.
+#
+# Instalar (após setup do projeto):
+#   pre-commit install --hook-type commit-msg --hook-type pre-commit
+#
+# Rodar manual em todos os arquivos:
+#   pre-commit run --all-files
+
+repos:
+  # Hooks essenciais (qualquer linguagem)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Detecção de secrets vazados
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+
+  # Conventional Commits — valida mensagem do commit
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, refactor, chore, test, ci, perf, build, revert]
+
+  # Python — só rodam se houver pyproject.toml na raiz
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.5
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: \.py$
+      - id: ruff-format
+        files: \.py$
+
+  # Node — lint via script npm (precisa do projeto ter npm install rodado)
+  # Comentado por padrão. Descomente se quiser ativar.
+  # - repo: local
+  #   hooks:
+  #     - id: eslint
+  #       name: eslint
+  #       entry: npm run lint
+  #       language: system
+  #       files: \.(js|ts)$
+  #       pass_filenames: false

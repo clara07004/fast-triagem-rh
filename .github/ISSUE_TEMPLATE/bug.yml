@@ -1,0 +1,63 @@
+name: Bug
+description: Algo não está funcionando como deveria
+title: "[bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    id: o-que-aconteceu
+    attributes:
+      label: O que aconteceu
+      description: Descreva o comportamento atual em 2-3 frases.
+    validations:
+      required: true
+
+  - type: textarea
+    id: o-que-deveria-acontecer
+    attributes:
+      label: O que deveria acontecer
+      description: Comportamento esperado.
+    validations:
+      required: true
+
+  - type: textarea
+    id: como-reproduzir
+    attributes:
+      label: Como reproduzir
+      description: Passos para reproduzir o erro de forma confiável.
+      placeholder: |
+        1. Rodar comando X
+        2. Observar Y
+        3. Erro Z aparece
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou screenshots
+      description: Cole logs relevantes (com credenciais mascaradas) ou anexe screenshot.
+      render: shell
+
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente
+      description: Onde aconteceu? (development / staging / production)
+      placeholder: production
+
+  - type: input
+    id: data
+    attributes:
+      label: Quando aconteceu (data/hora)
+      placeholder: 2026-04-30 14:32
+
+  - type: dropdown
+    id: severidade
+    attributes:
+      label: Severidade
+      options:
+        - Baixa — workaround disponível, sem impacto operacional
+        - Média — impacta uso, mas não bloqueia
+        - Alta — bloqueia operação ou processa errado em silêncio
+    validations:
+      required: true

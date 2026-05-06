@@ -1,0 +1,43 @@
+name: Feature
+description: Nova funcionalidade ou melhoria
+title: "[feat]: "
+labels: [feature]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve
+      description: Descreva o problema ou oportunidade. Comece pelo "porquê", não pela solução.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta de solução
+      description: O que você imagina como solução. Pode ser high-level.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+      description: Outras formas de resolver o mesmo problema. Por que essa é melhor?
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto esperado
+      description: Quem ganha o quê. Quanto. Como medir.
+
+  - type: dropdown
+    id: prioridade
+    attributes:
+      label: Prioridade sugerida
+      options:
+        - P1 — bloqueia o projeto
+        - P2 — importante mas não bloqueante
+        - P3 — melhoria / nice to have
+    validations:
+      required: true
