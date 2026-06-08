@@ -59,7 +59,7 @@ Karina mantém o controle total: ela revisa a planilha gerada e pré-aprova os p
 - PandaPé continua oferecendo exportação estruturada de candidatos.
 - CVs das demais plataformas chegam como arquivos PDF ou Word baixados manualmente (por enquanto).
 - Karina terá disponibilidade para um treinamento de entrega (~1 hora).
-- A planilha atual no Google Sheets (ou Excel) é o destino aceito pelo time.
+- A planilha de triagem em Excel (`.xlsx` local) é o destino aceito pelo time — confirmado em `/planejar-automacao`.
 - A Claude API tem latência e custo aceitáveis para o volume de CVs processados.
 
 ## Riscos identificados

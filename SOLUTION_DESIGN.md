@@ -23,7 +23,7 @@ flowchart LR
     C[PDF / Word\ndemais plataformas] --> D
     D --> E[Parser de CVs\npdfplumber / python-docx]
     E --> F[Claude API\nAnálise + ranking]
-    F --> G[Google Sheets\nPlanilha do time]
+    F --> G[Planilha Excel\ntriagem_<vaga>.xlsx]
     G --> H[Karina revisa\ne pré-aprova]
 ```
 
@@ -34,7 +34,7 @@ flowchart LR
 | Runtime | Python 3.11+ | Bibliotecas de PDF/Word/Excel, já no starter |
 | Parsing de CV | pdfplumber + python-docx | Extração de texto de PDF e Word |
 | IA | Claude API (Anthropic) | Análise semântica de CVs contra critérios |
-| Planilha | gspread (Google Sheets) ou openpyxl (Excel local) | Integra com o que o time já usa |
+| Planilha | openpyxl (Excel local) | Arquivo .xlsx que Karina abre direto; sem dependência de credenciais Google |
 | Agendamento | Manual (trigger por comando) | Karina roda por demanda, sem schedule |
 | Validação | Pydantic | Critérios da vaga como modelo tipado |
 | Logs | Loguru (já no starter) | JSON em prod, console em dev |
@@ -42,7 +42,7 @@ flowchart LR
 ## Fluxo detalhado (MVP)
 
 ### 1. Input — Critérios da vaga
-Karina preenche um arquivo simples (YAML ou formulário CLI) com:
+Karina preenche um template Excel (`criterios.xlsx`, gerado por `scripts/gerar_template_criterios.py`) com:
 - `cargo`: título da vaga
 - `requisitos_obrigatorios`: lista de itens eliminatórios
 - `diferenciais`: lista de itens que pesam positivamente
@@ -88,7 +88,7 @@ Linha gerada por candidato na planilha:
 
 ## Decisões de arquitetura
 
-- **Critérios como YAML por vaga:** mais simples que formulário web, Karina pode copiar de uma vaga anterior como base. A ser validado no treinamento.
+- **Critérios como template Excel por vaga:** mais acessível que YAML ou formulário web para a Karina (não-técnica); ela duplica o arquivo de uma vaga anterior como base. A ser validado no treinamento.
 - **Sem banco de dados no MVP:** resultados vão direto pra planilha. Logs locais são suficientes pra rastrear runs.
 - **Human-in-the-loop explícito:** automação nunca envia nada ao gestor. Karina valida a planilha antes de qualquer ação.
 
@@ -99,7 +99,7 @@ Linha gerada por candidato na planilha:
 | PandaPé | Leitura | CSV/XLSX de candidatos | Por vaga |
 | PDF/Word local | Leitura | Texto dos CVs | Por vaga |
 | Claude API | Leitura+escrita | Prompt + resposta JSON | Por candidato |
-| Google Sheets | Escrita | Linha por candidato | Por run |
+| Planilha Excel (local) | Escrita | Linha por candidato no .xlsx | Por run |
 
 ## Pontos críticos
 
@@ -109,7 +109,7 @@ Linha gerada por candidato na planilha:
 
 ## Segurança
 
-- **Credenciais:** `.env` local (não commitado). Variáveis: `ANTHROPIC_API_KEY`, `GOOGLE_SHEETS_CREDENTIALS`.
+- **Credenciais:** `.env` local (não commitado). Variável: `ANTHROPIC_API_KEY`.
 - **Dados sensíveis:** CVs geralmente não têm dados críticos. LGPD a tratar em versão futura.
 - **Acessos:** só Clara e Karina têm acesso ao repositório e à planilha.
 

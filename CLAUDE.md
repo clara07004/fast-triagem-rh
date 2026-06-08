@@ -15,7 +15,7 @@ Eliminar 3 a 5 horas semanais de triagem manual, reduzindo o tempo de entrega de
 
 ## Stack
 
-Python 3.11+ com API externa de IA (Claude). Dependências principais: pdfplumber, python-docx, openpyxl/gspread, httpx, pydantic, loguru.
+Python 3.11+ com API externa de IA (Claude). Dependências principais: pdfplumber, python-docx, openpyxl, httpx, pydantic, loguru.
 
 ## Integrações
 
@@ -23,7 +23,7 @@ Python 3.11+ com API externa de IA (Claude). Dependências principais: pdfplumbe
 |---|---|---|
 | PandaPé | Exportação de dados | Plataforma principal — tem exportação estruturada |
 | Indeed, Catho, Engenha, LinkedIn | Leitura de PDF/Word | CVs chegam como arquivos |
-| Google Sheets | Escrita | Planilha de triagem que Karina já usa |
+| Excel (openpyxl) | Escrita | Planilha de triagem `.xlsx` local que Karina abre e revisa |
 | Claude API (Anthropic) | IA | Análise e ranqueamento de perfis |
 
 ## Restrições
