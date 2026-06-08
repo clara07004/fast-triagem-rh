@@ -15,9 +15,14 @@ from pydantic import BaseModel, Field
 class VagaCriterios(BaseModel):
     """Critérios de uma vaga. Preenchido por Karina via template Excel."""
 
-    cargo: str = Field(..., description="Título da vaga")
+    cargo: str = Field(..., min_length=1, description="Título da vaga")
     requisitos_obrigatorios: list[str] = Field(
-        ..., description="Itens eliminatórios — candidato reprovado se não atender"
+        ...,
+        min_length=1,
+        description=(
+            "Itens eliminatórios — candidato reprovado se não atender. "
+            "Pelo menos um é obrigatório: sem requisito eliminatório não há o que triar."
+        ),
     )
     diferenciais: list[str] = Field(
         default_factory=list,
