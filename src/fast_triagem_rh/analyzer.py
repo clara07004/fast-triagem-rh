@@ -19,10 +19,9 @@ from tenacity import (
     wait_exponential,
 )
 
-from .models import Classificacao, ResultadoCandidato, VagaCriterios
-
 # Logger configurado em logger.py
 from .logger import get_logger
+from .models import ResultadoCandidato, VagaCriterios
 
 log = get_logger(__name__)
 

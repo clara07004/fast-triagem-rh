@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from fast_triagem_rh.parsers.criterios import CriteriosParseError, parse_criterios

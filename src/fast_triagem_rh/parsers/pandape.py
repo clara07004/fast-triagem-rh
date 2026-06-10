@@ -13,7 +13,6 @@ Estrutura esperada (PandaPé 2024-2025):
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
 
 import openpyxl
@@ -134,11 +133,11 @@ def extrair_pandape(
 
         try:
             # Funções auxiliares para extrair valores de forma robusta
-            def get_col(header_name: str) -> str | None:
+            def get_col(header_name: str, linha: int = row) -> str | None:
                 """Retorna valor da célula para um header, ou None."""
                 col = headers_map.get(header_name.lower())
                 if col:
-                    val = ws.cell(row, col).value
+                    val = ws.cell(linha, col).value
                     return str(val).strip() if val else None
                 return None
 

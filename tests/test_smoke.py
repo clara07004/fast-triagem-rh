@@ -30,7 +30,6 @@ def test_envelope_sucesso():
 def test_envelope_falha_propaga_excecao():
     import pytest
 
-    with pytest.raises(ValueError):
-        with run_envelope("test-falha") as env:
-            env.add_processed(1)
-            raise ValueError("erro proposital")
+    with pytest.raises(ValueError), run_envelope("test-falha") as env:
+        env.add_processed(1)
+        raise ValueError("erro proposital")

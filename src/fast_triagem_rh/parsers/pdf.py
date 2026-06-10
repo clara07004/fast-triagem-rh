@@ -39,7 +39,7 @@ def extrair_texto_pdf(caminho: str | Path) -> str:
                 raise PDFParseError(f"PDF sem páginas: {caminho.name}")
 
             partes: list[str] = []
-            for i, pagina in enumerate(pdf.pages, start=1):
+            for pagina in pdf.pages:
                 texto = pagina.extract_text()
                 if texto:
                     partes.append(texto)

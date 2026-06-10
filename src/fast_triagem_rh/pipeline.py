@@ -125,10 +125,11 @@ def _processar_arquivo_unico(
     """Processa um CV de arquivo único (PDF ou Word): 1 arquivo = 1 candidato."""
     ext = arquivo.suffix.lower()
     try:
-        if ext in _EXT_PDF:
-            texto = extrair_texto_pdf(arquivo)
-        else:  # Word
-            texto = extrair_texto_docx(arquivo)
+        texto = (
+            extrair_texto_pdf(arquivo)
+            if ext in _EXT_PDF
+            else extrair_texto_docx(arquivo)  # Word
+        )
     except (PDFParseError, DOCXParseError) as exc:
         log.warning(f"[{env.run_id}] CV ilegível ({arquivo.name}): {exc}")
         env.add_failed()

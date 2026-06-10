@@ -26,9 +26,10 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, Generator
+from typing import Any
 
 from .logger import get_logger
 

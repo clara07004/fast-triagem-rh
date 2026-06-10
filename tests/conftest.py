@@ -64,7 +64,7 @@ def criar_docx(tmp_path: Path):
             doc.add_paragraph(p)
         if tabela:
             t = doc.add_table(rows=len(tabela), cols=2)
-            for linha, (a, b) in zip(t.rows, tabela):
+            for linha, (a, b) in zip(t.rows, tabela, strict=False):
                 linha.cells[0].text = a
                 linha.cells[1].text = b
         caminho = tmp_path / nome
@@ -78,7 +78,7 @@ def criar_docx(tmp_path: Path):
 def criar_pandape(tmp_path: Path):
     """Cria uma exportação PandaPé real no layout esperado pelo parser."""
 
-    HEADERS = [
+    headers_padrao = [
         "Nome", "Sobrenome", "E-mail", "Telefone", "Celular", "Estado",
         "Cidade", "Título", "Experiência Profissional", "Idiomas",
         "Data de Inscrição",
@@ -98,7 +98,7 @@ def criar_pandape(tmp_path: Path):
                 "Experiência Profissional": "5 anos em vendas", "Idiomas": "Português",
             }
         ]
-        cols = headers if headers is not None else HEADERS
+        cols = headers if headers is not None else headers_padrao
 
         wb = openpyxl.Workbook()
         ws = wb.active
