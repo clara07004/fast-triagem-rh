@@ -46,21 +46,49 @@ def test_arquivo_criado_com_nome_esperado(planilha):
     assert planilha.name == "triagem_vendedor_tecnico_20260608_143000.xlsx"
 
 
+def test_tres_abas_na_ordem_esperada(planilha):
+    wb = load_workbook(planilha)
+    assert wb.sheetnames == ["Resumo", "Triagem", "Como usar"]
+    # Abre no Resumo.
+    assert wb.active.title == "Resumo"
+
+
 def test_ordenacao_por_classificacao_e_pontuacao(planilha):
-    ws = load_workbook(planilha).active
+    ws = load_workbook(planilha)["Triagem"]
     nomes = [row[0].value for row in ws.iter_rows(min_row=2)]
     # aprovado(95) > aprovado(70) > verificar(60) > reprovado(40) > erro(0)
     assert nomes == ["aprov_alto", "aprov_baixo", "verif", "reprov", "erro"]
 
 
 def test_cabecalho_e_estrutura(planilha):
-    ws = load_workbook(planilha).active
+    ws = load_workbook(planilha)["Triagem"]
     cabecalho = [c.value for c in ws[1]]
     assert cabecalho[0] == "Nome"
     assert "Pontuação" in cabecalho
     assert "Justificativa" in cabecalho
-    assert ws.freeze_panes == "A2"
+    # Congela cabeçalho (linha 1) e a coluna Nome (A).
+    assert ws.freeze_panes == "B2"
     assert ws.auto_filter.ref is not None
+
+
+def test_resumo_traz_vaga_e_kpis(planilha):
+    ws = load_workbook(planilha)["Resumo"]
+    textos = [
+        str(c.value)
+        for row in ws.iter_rows()
+        for c in row
+        if c.value is not None
+    ]
+    # Identificação da vaga aparece no subtítulo.
+    assert any("Vendedor Técnico" in t for t in textos)
+    # Cartões de KPI por classificação.
+    assert "APROVADOS" in textos
+    assert "VERIFICAR" in textos
+    assert "REPROVADOS" in textos
+    # Seção dos melhores candidatos.
+    assert "MELHORES CANDIDATOS" in textos
+    # O candidato de maior pontuação (aprovado, 95) aparece no top.
+    assert any("aprov_alto" in t for t in textos)
 
 
 def test_cargo_com_acento_e_simbolo_vira_slug_seguro(tmp_path):
@@ -76,5 +104,5 @@ def test_cargo_com_acento_e_simbolo_vira_slug_seguro(tmp_path):
 
 def test_lista_vazia_gera_planilha_com_cabecalho(tmp_path):
     caminho = escrever_planilha([], cargo="Vaga X", pasta_saida=tmp_path)
-    ws = load_workbook(caminho).active
+    ws = load_workbook(caminho)["Triagem"]
     assert ws.max_row == 1  # só o cabeçalho
