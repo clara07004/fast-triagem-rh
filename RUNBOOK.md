@@ -19,10 +19,33 @@ Lê os critérios de uma vaga + os currículos (exportação do PandaPé e/ou PD
 
 - **Gatilho:** manual, sob demanda, uma vez por vaga.
 - **Frequência:** quando há uma vaga para triar.
-- **Comando:**
+- **Pelo app (caminho da Karina):** duplo clique no atalho **"Fast Triagem"** da
+  área de trabalho. Ele sobe o servidor local escondido e abre o app numa
+  janela própria.
+- **Pela linha de comando (alternativa técnica):**
   ```bash
   python -m fast_triagem_rh --vaga criterios_<vaga>.xlsx --cvs pasta_da_vaga/
   ```
+
+## Instalação em um novo computador
+
+Pré-requisito: **Python 3.11+** ([python.org](https://python.org), marcando
+*"Add Python to PATH"*) e Chrome ou Edge instalado.
+
+1. Clonar o projeto (`git clone https://github.com/clara07004/fast-triagem-rh.git`)
+   ou baixar o ZIP pelo GitHub (*Code → Download ZIP*) e extrair.
+2. Na pasta do projeto, rodar o instalador:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File scripts\instalar.ps1
+   ```
+   Ele confere o Python, instala as dependências, pede a `ANTHROPIC_API_KEY`
+   (pedir à Clara — transferir por canal seguro, nunca por e-mail/WhatsApp em
+   texto aberto) e cria o atalho **"Fast Triagem"** na área de trabalho.
+3. Pronto — duplo clique no atalho abre o app.
+
+> O histórico de triagens (`data/`) e os CVs (`vagas/`) são locais de cada
+> computador e **não** vão pro GitHub. Instalação nova começa com histórico
+> zerado — é o esperado.
 
 ## ⚠️ Regra de ouro — filtrar no PandaPé antes de exportar
 
