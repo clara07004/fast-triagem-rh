@@ -44,6 +44,7 @@ VERMELHO = "#D21217"
 PRETO = "#191A1A"
 CINZA_TXT = "#717578"
 LOGO = Path("assets/logo_fast.png")
+LOGO_ICONE = Path("assets/logo_diamante.png")  # só o losango — favicon/janela
 PASTA_VAGAS = Path("vagas")
 LIMITE_AVISO_VOLUME = 200  # acima disso, exige confirmação explícita
 
@@ -109,7 +110,7 @@ CHAVE_COR = {
 
 st.set_page_config(
     page_title="Fast Triagem",
-    page_icon=str(LOGO) if LOGO.exists() else "🔻",
+    page_icon=str(LOGO_ICONE) if LOGO_ICONE.exists() else "🔻",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -119,8 +120,11 @@ st.markdown(
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
 
+    /* Fonte da marca em tudo, MENOS nos ícones Material — eles são spans de
+       ligadura marcados com translate="no"; trocar a fonte deles faz o nome
+       do ícone (ex. "timer") aparecer como texto. */
     html, body, p, h1, h2, h3, h4, h5, h6, label, button, input, textarea,
-    span:not([data-testid="stIconMaterial"]):not(.material-symbols-rounded) {{
+    span:not([translate="no"]):not([data-testid="stIconMaterial"]):not(.material-symbols-rounded) {{
         font-family: 'Montserrat', 'Segoe UI', sans-serif;
     }}
 
