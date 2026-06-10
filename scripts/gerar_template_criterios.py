@@ -1,5 +1,16 @@
 """Gera criterios_vaga_template.xlsx na raiz do projeto.
 
+Template que a Karina preenche com os critérios de cada vaga, na identidade
+visual da Fast (Manual de Marca 2025): vermelho #D21217, preto #191A1A,
+tipografia Montserrat e logo embutido.
+
+IMPORTANTE: as posições das células de dados são lidas pelo parser
+(src/fast_triagem_rh/parsers/criterios.py) e NÃO podem mudar:
+  B3=cargo  B4=localizacao  B5=tipo_contrato  B6=observacoes
+  B8:B11=requisitos_obrigatorios   B13:B16=diferenciais
+O design ocupa as linhas que o parser ignora (1, 2, 7, 12) e o logo flutua
+sobre o cabeçalho, sem deslocar nenhuma célula.
+
 Rodar uma vez:
     python scripts/gerar_template_criterios.py
 """
@@ -7,162 +18,245 @@ Rodar uma vez:
 from pathlib import Path
 
 from openpyxl import Workbook
+from openpyxl.drawing.image import Image as XLImage
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
-OUTPUT = Path(__file__).parent.parent / "criterios_vaga_template.xlsx"
+RAIZ = Path(__file__).parent.parent
+OUTPUT = RAIZ / "criterios_vaga_template.xlsx"
+LOGO = RAIZ / "assets" / "logo_fast.png"
 
-AZUL_HEADER   = "1F3864"
-AZUL_SECAO    = "2E75B6"
-CINZA_LABEL   = "D6E4F0"
-AMARELO_INPUT = "FFF2CC"
-VERDE_LISTA   = "E2EFDA"
+# === Identidade Fast =======================================================
+FONTE = "Montserrat"
+RED = "D21217"        # vermelho principal
+PRETO = "191A1A"      # preto da marca
+AMARELO_INPUT = "FFF3C4"  # destaque "preencha aqui" (amarelo suave da marca)
+CINZA_LABEL = "ECECEC"
+CINZA_BORDA = "D9D9D9"
+CINZA_TXT = "717578"
+TEXTO = "191A1A"
 
 
-def _bold_white(size: int = 11) -> Font:
-    return Font(name="Arial", bold=True, color="FFFFFF", size=size)
+def _fill(cor: str) -> PatternFill:
+    return PatternFill("solid", fgColor=cor)
 
-def _bold_dark(size: int = 11) -> Font:
-    return Font(name="Arial", bold=True, color="1F3864", size=size)
 
-def _fill(hex_color: str) -> PatternFill:
-    return PatternFill("solid", start_color=hex_color, fgColor=hex_color)
+def _font(*, size=11, bold=False, color=TEXTO, italic=False) -> Font:
+    return Font(name=FONTE, size=size, bold=bold, color=color, italic=italic)
 
-def _border() -> Border:
-    s = Side(style="thin", color="BFBFBF")
-    return Border(left=s, right=s, top=s, bottom=s)
 
-def _center() -> Alignment:
-    return Alignment(horizontal="center", vertical="center", wrap_text=True)
+def _borda(cor=CINZA_BORDA) -> Border:
+    lado = Side(style="thin", color=cor)
+    return Border(left=lado, right=lado, top=lado, bottom=lado)
 
-def _left() -> Alignment:
-    return Alignment(horizontal="left", vertical="center", wrap_text=True)
+
+def _left(indent=1) -> Alignment:
+    return Alignment(horizontal="left", vertical="center", wrap_text=True, indent=indent)
+
+
+def _inserir_logo(ws, ancora: str, altura_px: int = 50) -> bool:
+    if not LOGO.is_file():
+        return False
+    try:
+        img = XLImage(str(LOGO))
+        if img.height:
+            escala = altura_px / float(img.height)
+            img.height = altura_px
+            img.width = int(img.width * escala)
+        ws.add_image(img, ancora)
+        return True
+    except Exception:
+        return False
 
 
 def _build_criterios(ws) -> None:
+    ws.sheet_view.showGridLines = False
     ws.column_dimensions["A"].width = 34
-    ws.column_dimensions["B"].width = 62
+    ws.column_dimensions["B"].width = 64
 
-    # Título
+    # --- Linha 1: letterhead branco com logo + título à direita ---
+    ws.row_dimensions[1].height = 58
     ws.merge_cells("A1:B1")
-    ws["A1"] = "TRIAGEM DE CANDIDATOS — CRITÉRIOS DA VAGA"
-    ws["A1"].font = _bold_white(13)
-    ws["A1"].fill = _fill(AZUL_HEADER)
-    ws["A1"].alignment = _center()
-    ws.row_dimensions[1].height = 32
+    _fill_intervalo(ws, 1, 1, 1, 2, "FFFFFF")
+    titulo = ws.cell(1, 1, "CRITÉRIOS DA VAGA")
+    titulo.font = Font(name=FONTE, size=18, bold=True, color=PRETO)
+    titulo.alignment = Alignment(horizontal="right", vertical="center", indent=1)
+    if not _inserir_logo(ws, "A1", altura_px=48):
+        # fallback textual
+        titulo.value = "FAST  ·  CRITÉRIOS DA VAGA"
 
-    # Instrução geral
+    # --- Linha 2: faixa vermelha com instrução ---
     ws.merge_cells("A2:B2")
-    ws["A2"] = (
-        "Preencha os campos em amarelo. "
-        "Para listas (Requisitos e Diferenciais), adicione um item por linha."
+    instr = ws.cell(
+        2, 1,
+        "Preencha os campos destacados em amarelo. Em listas, um item por linha.",
     )
-    ws["A2"].font = Font(name="Arial", size=9, italic=True, color="595959")
-    ws["A2"].alignment = _left()
-    ws.row_dimensions[2].height = 18
+    instr.font = _font(size=10, bold=True, color="FFFFFF")
+    instr.alignment = _left()
+    _fill_intervalo(ws, 2, 1, 2, 2, RED)
+    ws.row_dimensions[2].height = 24
 
-    def campo(row: int, label: str, exemplo: str, bg: str = AMARELO_INPUT) -> None:
-        c1 = ws.cell(row, 1, label)
-        c1.font = _bold_dark()
-        c1.fill = _fill(CINZA_LABEL)
-        c1.alignment = _left()
-        c1.border = _border()
+    # --- Campos simples (linhas 3–6) — col A rótulo, col B input ---
+    campos = [
+        (3, "Cargo", "Ex: Assistente de Vendas"),
+        (4, "Localização", "Ex: Rio de Janeiro - RJ  /  Remoto  /  Qualquer"),
+        (5, "Tipo de contrato", "Ex: CLT  /  PJ  /  Estágio"),
+        (6, "Observações (opcional)", "Contexto extra que ajude a IA a entender a vaga"),
+    ]
+    for linha, rotulo, exemplo in campos:
+        _rotulo(ws, linha, rotulo)
+        _input(ws, linha, exemplo)
+        ws.row_dimensions[linha].height = 26
 
-        c2 = ws.cell(row, 2, exemplo)
-        c2.font = Font(name="Arial", size=10, color="808080", italic=True)
-        c2.fill = _fill(bg)
-        c2.alignment = _left()
-        c2.border = _border()
-        ws.row_dimensions[row].height = 22
+    # --- Seção: Requisitos obrigatórios (linha 7) + itens (8–11) ---
+    _secao(ws, 7, "REQUISITOS OBRIGATÓRIOS", "candidato reprovado se não atender algum", RED)
+    exemplos_req = [
+        "Ex: Experiência mínima de 1 ano em vendas",
+        "Ex: Ensino médio completo",
+        "Ex: Disponibilidade para viagens",
+        "(adicione mais requisitos se precisar)",
+    ]
+    for i, ex in enumerate(exemplos_req):
+        linha = 8 + i
+        _bullet(ws, linha)
+        _input(ws, linha, ex)
+        ws.row_dimensions[linha].height = 24
 
-    def secao(row: int, label: str) -> None:
-        ws.merge_cells(f"A{row}:B{row}")
-        ws.cell(row, 1, label).font = _bold_white()
-        ws.cell(row, 1).fill = _fill(AZUL_SECAO)
-        ws.cell(row, 1).alignment = _left()
-        ws.row_dimensions[row].height = 24
+    # --- Seção: Diferenciais (linha 12) + itens (13–16) ---
+    _secao(ws, 12, "DIFERENCIAIS", "pesam positivamente, não são eliminatórios", PRETO)
+    exemplos_dif = [
+        "Ex: Experiência com CRM",
+        "Ex: Inglês intermediário",
+        "Ex: Conhecimento em drywall / construção a seco",
+        "(adicione mais diferenciais se precisar)",
+    ]
+    for i, ex in enumerate(exemplos_dif):
+        linha = 13 + i
+        _bullet(ws, linha)
+        _input(ws, linha, ex)
+        ws.row_dimensions[linha].height = 24
 
-    def item_lista(row: int, exemplo: str) -> None:
-        c1 = ws.cell(row, 1, "  ↳ item")
-        c1.font = Font(name="Arial", size=9, color="595959", italic=True)
-        c1.fill = _fill(CINZA_LABEL)
-        c1.alignment = Alignment(horizontal="right", vertical="center")
-        c1.border = _border()
-
-        c2 = ws.cell(row, 2, exemplo)
-        c2.font = Font(name="Arial", size=10, color="808080", italic=True)
-        c2.fill = _fill(VERDE_LISTA)
-        c2.alignment = _left()
-        c2.border = _border()
-        ws.row_dimensions[row].height = 22
-
-    # Campos simples (linhas 3–6)
-    campo(3, "cargo",         "Ex: Assistente de Vendas")
-    campo(4, "localizacao",   "Ex: São Paulo - SP  /  Remoto  /  Qualquer")
-    campo(5, "tipo_contrato", "Ex: CLT  /  PJ  /  Estágio")
-    campo(6, "observacoes",   "Informações adicionais para a triagem (opcional)")
-
-    # Requisitos obrigatórios (linhas 7–11)
-    secao(7, "📋  REQUISITOS OBRIGATÓRIOS  — candidato reprovado se não atender algum")
-    item_lista(8,  "Ex: Experiência mínima de 1 ano em vendas")
-    item_lista(9,  "Ex: Ensino médio completo")
-    item_lista(10, "Ex: Disponibilidade para viagens")
-    item_lista(11, "(adicione mais linhas se precisar de mais requisitos)")
-
-    # Diferenciais (linhas 12–16)
-    secao(12, "⭐  DIFERENCIAIS  — pesam positivamente, não são obrigatórios")
-    item_lista(13, "Ex: Experiência com CRM")
-    item_lista(14, "Ex: Inglês intermediário")
-    item_lista(15, "Ex: Conhecimento em drywall / construção a seco")
-    item_lista(16, "(adicione mais linhas se precisar de mais diferenciais)")
-
-    # Rodapé
+    # --- Rodapé (linha 17) ---
     ws.merge_cells("A17:B17")
-    ws["A17"] = "ℹ️  Dúvidas? Fale com Clara Barbosa."
-    ws["A17"].font = Font(name="Arial", size=9, italic=True, color="595959")
-    ws["A17"].alignment = _left()
-    ws.row_dimensions[17].height = 16
+    pe = ws.cell(17, 1, "Dúvidas? Fale com a Clara Barbosa.")
+    pe.font = _font(size=9, italic=True, color=CINZA_TXT)
+    pe.alignment = _left()
+    _fill_intervalo(ws, 17, 1, 17, 2, "FFFFFF")
+    ws.cell(17, 1).border = Border(top=Side(style="thin", color=CINZA_BORDA))
+    ws.cell(17, 2).border = Border(top=Side(style="thin", color=CINZA_BORDA))
+    ws.row_dimensions[17].height = 18
 
     ws.freeze_panes = "A3"
 
 
-def _build_instrucoes(wi) -> None:
-    wi.column_dimensions["A"].width = 82
+def _fill_intervalo(ws, r1, c1, r2, c2, cor):
+    for r in range(r1, r2 + 1):
+        for c in range(c1, c2 + 1):
+            ws.cell(r, c).fill = _fill(cor)
 
-    linhas = [
-        ("COMO USAR ESTE TEMPLATE", True, AZUL_HEADER, "FFFFFF", 30),
-        ("", False, None, "000000", 8),
-        ("PASSO 1 — Duplique este arquivo", True, AZUL_SECAO, "FFFFFF", 24),
-        ("  Renomeie para: criterios_<nome_da_vaga>.xlsx", False, None, "000000", 20),
-        ("  Exemplo: criterios_assistente_vendas.xlsx", False, None, "595959", 20),
-        ("", False, None, "000000", 8),
-        ("PASSO 2 — Preencha a aba 'Critérios'", True, AZUL_SECAO, "FFFFFF", 24),
-        ("  • Cargo, localização e tipo de contrato: preencha na coluna B.", False, None, "000000", 20),
-        ("  • Requisitos obrigatórios: um item por linha (linhas verdes).", False, None, "000000", 20),
-        ("  • Diferenciais: idem — um por linha. Não são eliminatórios.", False, None, "000000", 20),
-        ("  • Observações: contexto extra que ajude a IA a entender a vaga.", False, None, "000000", 20),
-        ("", False, None, "000000", 8),
-        ("PASSO 3 — Organize os CVs", True, AZUL_SECAO, "FFFFFF", 24),
-        ("  Crie uma pasta com o nome da vaga e coloque todos os CVs (PDF ou Word) dentro.", False, None, "000000", 20),
-        ("  O arquivo de exportação do PandaPé também vai nessa pasta.", False, None, "000000", 20),
-        ("", False, None, "000000", 8),
-        ("PASSO 4 — Rode o script", True, AZUL_SECAO, "FFFFFF", 24),
-        ("  Abra o terminal e execute:", False, None, "000000", 20),
-        ("  python -m fast_triagem_rh --vaga criterios_<vaga>.xlsx --cvs pasta_dos_cvs/", False, None, "595959", 20),
-        ("", False, None, "000000", 8),
-        ("PASSO 5 — Revise a planilha gerada", True, AZUL_SECAO, "FFFFFF", 24),
-        ("  O script gera triagem_<vaga>_<data>.xlsx com os candidatos ranqueados.", False, None, "000000", 20),
-        ("  Revise, ajuste se necessário, e encaminhe aos gestores.", False, None, "000000", 20),
-        ("", False, None, "000000", 8),
-        ("⚠️  A IA faz a triagem, mas a decisão final é sempre sua.", True, AMARELO_INPUT, "1F3864", 22),
+
+def _rotulo(ws, linha, texto):
+    c = ws.cell(linha, 1, texto)
+    c.font = _font(bold=True, color=PRETO)
+    c.fill = _fill(CINZA_LABEL)
+    c.alignment = _left()
+    c.border = _borda()
+
+
+def _input(ws, linha, exemplo):
+    c = ws.cell(linha, 2, exemplo)
+    c.font = _font(size=10, italic=True, color="9A8A55")
+    c.fill = _fill(AMARELO_INPUT)
+    c.alignment = _left()
+    c.border = _borda()
+
+
+def _bullet(ws, linha):
+    c = ws.cell(linha, 1, "▸")
+    c.font = _font(bold=True, color=RED)
+    c.fill = _fill(CINZA_LABEL)
+    c.alignment = Alignment(horizontal="center", vertical="center")
+    c.border = _borda()
+
+
+def _secao(ws, linha, titulo, subtitulo, cor):
+    ws.merge_cells(start_row=linha, start_column=1, end_row=linha, end_column=2)
+    c = ws.cell(linha, 1)
+    c.value = f"{titulo}   —   {subtitulo}"
+    c.font = _font(size=11, bold=True, color="FFFFFF")
+    c.alignment = _left()
+    _fill_intervalo(ws, linha, 1, linha, 2, cor)
+    ws.row_dimensions[linha].height = 24
+
+
+def _build_instrucoes(ws) -> None:
+    ws.sheet_view.showGridLines = False
+    ws.column_dimensions["A"].width = 4
+    ws.column_dimensions["B"].width = 100
+
+    # Letterhead + título
+    ws.row_dimensions[1].height = 54
+    _fill_intervalo(ws, 1, 1, 1, 2, "FFFFFF")
+    if not _inserir_logo(ws, "A1", altura_px=48):
+        cel = ws.cell(1, 1, "FAST")
+        cel.font = _font(size=18, bold=True, color=RED)
+        cel.alignment = _left()
+
+    ws.merge_cells("A2:B2")
+    t = ws.cell(2, 1, "Como usar este template")
+    t.font = _font(size=16, bold=True, color="FFFFFF")
+    t.alignment = _left()
+    _fill_intervalo(ws, 2, 1, 2, 2, RED)
+    ws.row_dimensions[2].height = 32
+
+    blocos = [
+        ("", "spacer"),
+        ("PASSO 1 — Duplique este arquivo", "secao"),
+        ("Renomeie para: criterios_<nome_da_vaga>.xlsx   (ex: criterios_assistente_vendas.xlsx)", "item"),
+        ("", "spacer"),
+        ("PASSO 2 — Preencha a aba 'Critérios'", "secao"),
+        ("Cargo, localização e tipo de contrato: preencha na coluna amarela.", "item"),
+        ("Requisitos obrigatórios: um item por linha. Quem não atender é reprovado.", "item"),
+        ("Diferenciais: idem — um por linha. Não são eliminatórios.", "item"),
+        ("Observações: contexto extra que ajude a IA a entender a vaga.", "item"),
+        ("", "spacer"),
+        ("PASSO 3 — Organize os CVs", "secao"),
+        ("Crie uma pasta com o nome da vaga e coloque os CVs (PDF/Word) e a exportação do PandaPé dentro.", "item"),
+        ("", "spacer"),
+        ("PASSO 4 — Rode o script", "secao"),
+        ("python -m fast_triagem_rh --vaga criterios_<vaga>.xlsx --cvs pasta_dos_cvs/", "codigo"),
+        ("", "spacer"),
+        ("PASSO 5 — Revise a planilha gerada", "secao"),
+        ("O script gera triagem_<vaga>_<data>.xlsx com os candidatos ranqueados. Revise e encaminhe.", "item"),
+        ("", "spacer"),
+        ("A IA faz a triagem, mas a decisão final é sempre sua.", "callout"),
     ]
 
-    for r, (texto, bold, bg, fg, height) in enumerate(linhas, start=1):
-        cell = wi.cell(r, 1, texto)
-        cell.font = Font(name="Arial", bold=bold, color=fg, size=10 if not bold else 11)
-        cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
-        if bg:
-            cell.fill = PatternFill("solid", start_color=bg, fgColor=bg)
-        wi.row_dimensions[r].height = height
+    r = 3
+    for texto, tipo in blocos:
+        if tipo == "spacer":
+            ws.row_dimensions[r].height = 8
+            r += 1
+            continue
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
+        c = ws.cell(r, 1, texto)
+        c.alignment = _left()
+        if tipo == "secao":
+            c.font = _font(size=12, bold=True, color=RED)
+            ws.cell(r, 1).border = Border(bottom=Side(style="thin", color=CINZA_BORDA))
+            ws.cell(r, 2).border = Border(bottom=Side(style="thin", color=CINZA_BORDA))
+            ws.row_dimensions[r].height = 26
+        elif tipo == "codigo":
+            c.font = Font(name="Consolas", size=10, color="FFFFFF")
+            _fill_intervalo(ws, r, 1, r, 2, PRETO)
+            ws.row_dimensions[r].height = 22
+        elif tipo == "callout":
+            c.font = _font(size=11, bold=True, color="FFFFFF")
+            _fill_intervalo(ws, r, 1, r, 2, PRETO)
+            ws.row_dimensions[r].height = 30
+        else:
+            c.font = _font(size=11, color=TEXTO)
+            ws.row_dimensions[r].height = 20
+        r += 1
 
 
 def main() -> None:
@@ -175,7 +269,7 @@ def main() -> None:
     _build_instrucoes(ws_instrucoes)
 
     wb.save(OUTPUT)
-    print(f"✅  Template criado: {OUTPUT}")
+    print(f"Template criado: {OUTPUT}")
 
 
 if __name__ == "__main__":
