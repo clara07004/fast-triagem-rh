@@ -12,6 +12,7 @@ não há o que triar.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -36,6 +37,38 @@ _EXT_PANDAPE = {".xlsx", ".xlsm"}
 
 class PipelineError(Exception):
     """Erro fatal que impede a triagem (ex.: critérios inválidos)."""
+
+
+# Callback de progresso: (feitos, total_estimado, rótulo do item atual).
+# O total pode crescer durante a execução (um arquivo PandaPé vira N candidatos).
+ProgressoCallback = Callable[[int, int, str], None]
+
+
+class _Progresso:
+    """Contador de progresso tolerante a falha — nunca derruba a triagem."""
+
+    def __init__(self, total_inicial: int, callback: ProgressoCallback | None):
+        self.total = total_inicial
+        self.feitos = 0
+        self._callback = callback
+
+    def expandir(self, extras: int) -> None:
+        """Um arquivo se desdobrou em N itens (PandaPé): ajusta o total."""
+        self.total += extras
+        self._emitir("")
+
+    def avancar(self, rotulo: str) -> None:
+        self.feitos += 1
+        self._emitir(rotulo)
+
+    def _emitir(self, rotulo: str) -> None:
+        if self._callback is None:
+            return
+        try:
+            self._callback(self.feitos, self.total, rotulo)
+        except Exception:  # noqa: BLE001 — progresso é cosmético
+            log.warning("Callback de progresso falhou; seguindo sem ele.")
+            self._callback = None
 
 
 def _erro(
@@ -92,7 +125,7 @@ def _analisar(vaga: VagaCriterios, texto: str, fonte: str) -> ResultadoCandidato
 
 
 def _processar_pandape(
-    vaga: VagaCriterios, arquivo: Path, env
+    vaga: VagaCriterios, arquivo: Path, env, progresso: _Progresso
 ) -> list[ResultadoCandidato]:
     """Processa uma exportação PandaPé: N candidatos em um arquivo."""
     try:
@@ -100,7 +133,11 @@ def _processar_pandape(
     except PandapeParseError as exc:
         log.warning(f"[{env.run_id}] PandaPé ilegível ({arquivo.name}): {exc}")
         env.add_failed()
+        progresso.avancar(arquivo.name)
         return [_erro("erro_parsing", arquivo.name, f"Exportação PandaPé inválida: {exc}")]
+
+    # O arquivo (1 item no total) virou N candidatos: ajusta o total.
+    progresso.expandir(len(candidatos) - 1)
 
     resultados: list[ResultadoCandidato] = []
     for c in candidatos:
@@ -112,6 +149,7 @@ def _processar_pandape(
         resultado.contato = _contato_pandape(c) or resultado.contato
         resultados.append(resultado)
         env.add_processed()
+        progresso.avancar(nome_completo)
         log.info(
             f"[{env.run_id}] {nome_completo}: {resultado.classificacao} "
             f"({resultado.pontuacao}/100)"
@@ -120,7 +158,7 @@ def _processar_pandape(
 
 
 def _processar_arquivo_unico(
-    vaga: VagaCriterios, arquivo: Path, env
+    vaga: VagaCriterios, arquivo: Path, env, progresso: _Progresso
 ) -> ResultadoCandidato:
     """Processa um CV de arquivo único (PDF ou Word): 1 arquivo = 1 candidato."""
     ext = arquivo.suffix.lower()
@@ -133,10 +171,12 @@ def _processar_arquivo_unico(
     except (PDFParseError, DOCXParseError) as exc:
         log.warning(f"[{env.run_id}] CV ilegível ({arquivo.name}): {exc}")
         env.add_failed()
+        progresso.avancar(arquivo.name)
         return _erro("erro_parsing", arquivo.name, f"Não foi possível ler o CV: {exc}")
 
     resultado = _analisar(vaga, texto, arquivo.name)
     env.add_processed()
+    progresso.avancar(arquivo.name)
     log.info(
         f"[{env.run_id}] {arquivo.name}: {resultado.classificacao} "
         f"({resultado.pontuacao}/100)"
@@ -144,31 +184,32 @@ def _processar_arquivo_unico(
     return resultado
 
 
-def processar_vaga(
-    caminho_criterios: str | Path,
+def processar_vaga_criterios(
+    vaga: VagaCriterios,
     pasta_cvs: str | Path,
     pasta_saida: str | Path = ".",
+    on_progresso: ProgressoCallback | None = None,
 ) -> tuple[Path, list[ResultadoCandidato]]:
-    """Executa a triagem completa de uma vaga.
+    """Executa a triagem a partir de critérios já validados (sem arquivo Excel).
+
+    É o ponto de entrada usado pelo app web, onde os critérios vêm de um
+    formulário. A CLI usa o wrapper processar_vaga, que parseia o Excel antes.
 
     Args:
-        caminho_criterios: Template Excel com os critérios da vaga.
+        vaga: Critérios da vaga já validados.
         pasta_cvs: Pasta com os CVs (PDF/Word) e/ou exportações PandaPé.
         pasta_saida: Onde gravar a planilha de triagem.
+        on_progresso: Callback opcional (feitos, total, rótulo) chamado a cada
+                      candidato concluído. O total pode crescer durante a
+                      execução (um arquivo PandaPé vira N candidatos).
 
     Returns:
         Tupla (caminho da planilha gerada, lista de resultados).
 
     Raises:
-        PipelineError: Se os critérios ou a pasta de CVs forem inválidos.
+        PipelineError: Se a pasta de CVs for inválida ou vazia.
     """
     pasta_cvs = Path(pasta_cvs)
-
-    # Critérios são pré-requisito — erro aqui é fatal.
-    try:
-        vaga = parse_criterios(caminho_criterios)
-    except Exception as exc:
-        raise PipelineError(f"Critérios da vaga inválidos: {exc}") from exc
 
     if not pasta_cvs.is_dir():
         raise PipelineError(f"Pasta de CVs não encontrada: {pasta_cvs}")
@@ -178,6 +219,7 @@ def processar_vaga(
         raise PipelineError(f"Nenhum arquivo na pasta de CVs: {pasta_cvs}")
 
     resultados: list[ResultadoCandidato] = []
+    progresso = _Progresso(len(arquivos), on_progresso)
 
     with run_envelope("triagem-vaga") as env:
         env.set("cargo", vaga.cargo)
@@ -187,13 +229,45 @@ def processar_vaga(
         for arquivo in arquivos:
             ext = arquivo.suffix.lower()
             if ext in _EXT_PANDAPE:
-                resultados.extend(_processar_pandape(vaga, arquivo, env))
+                resultados.extend(_processar_pandape(vaga, arquivo, env, progresso))
             elif ext in _EXT_PDF or ext in _EXT_WORD:
-                resultados.append(_processar_arquivo_unico(vaga, arquivo, env))
+                resultados.append(_processar_arquivo_unico(vaga, arquivo, env, progresso))
             else:
                 log.warning(f"[{env.run_id}] Ignorado (tipo não suportado): {arquivo.name}")
+                progresso.avancar(arquivo.name)
 
         env.set("candidatos", len(resultados))
 
     caminho = escrever_planilha(resultados, cargo=vaga.cargo, pasta_saida=pasta_saida)
     return caminho, resultados
+
+
+def processar_vaga(
+    caminho_criterios: str | Path,
+    pasta_cvs: str | Path,
+    pasta_saida: str | Path = ".",
+    on_progresso: ProgressoCallback | None = None,
+) -> tuple[Path, list[ResultadoCandidato]]:
+    """Executa a triagem completa de uma vaga a partir do Excel de critérios.
+
+    Args:
+        caminho_criterios: Template Excel com os critérios da vaga.
+        pasta_cvs: Pasta com os CVs (PDF/Word) e/ou exportações PandaPé.
+        pasta_saida: Onde gravar a planilha de triagem.
+        on_progresso: Callback opcional de progresso (ver processar_vaga_criterios).
+
+    Returns:
+        Tupla (caminho da planilha gerada, lista de resultados).
+
+    Raises:
+        PipelineError: Se os critérios ou a pasta de CVs forem inválidos.
+    """
+    # Critérios são pré-requisito — erro aqui é fatal.
+    try:
+        vaga = parse_criterios(caminho_criterios)
+    except Exception as exc:
+        raise PipelineError(f"Critérios da vaga inválidos: {exc}") from exc
+
+    return processar_vaga_criterios(
+        vaga, pasta_cvs, pasta_saida=pasta_saida, on_progresso=on_progresso
+    )

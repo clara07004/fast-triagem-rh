@@ -109,3 +109,44 @@ def test_resultado_anexa_arquivo_fonte(criar_criterios, criar_docx, tmp_path):
 
     _caminho, resultados = processar_vaga(criterios, cvs, pasta_saida=tmp_path)
     assert resultados[0].arquivo_fonte == "joao.docx"
+
+
+def test_callback_de_progresso_acompanha_candidatos(
+    criar_criterios, criar_pandape, tmp_path
+):
+    criterios = criar_criterios()
+    cvs = tmp_path / "cvs"
+    cvs.mkdir()
+    pandape = criar_pandape(candidatos=[
+        {"Nome": "Ana", "Sobrenome": "Souza", "E-mail": "ana@x.com"},
+        {"Nome": "Bruno", "Sobrenome": "Lima", "E-mail": "b@x.com"},
+        {"Nome": "Carla", "Sobrenome": "Reis", "E-mail": "c@x.com"},
+    ])
+    pandape.rename(cvs / "export.xlsx")
+
+    eventos: list[tuple[int, int, str]] = []
+    processar_vaga(
+        criterios, cvs, pasta_saida=tmp_path,
+        on_progresso=lambda f, t, r: eventos.append((f, t, r)),
+    )
+
+    # 1 arquivo expandiu pra 3 candidatos: total final = 3, feitos termina em 3
+    assert eventos[-1][0] == 3
+    assert eventos[-1][1] == 3
+    # cada candidato gerou um avanco com o nome no rotulo
+    rotulos = [e[2] for e in eventos if e[2]]
+    assert rotulos == ["Ana Souza", "Bruno Lima", "Carla Reis"]
+
+
+def test_processar_vaga_criterios_aceita_modelo_direto(criar_pandape, tmp_path):
+    from fast_triagem_rh.models import VagaCriterios
+    from fast_triagem_rh.pipeline import processar_vaga_criterios
+
+    vaga = VagaCriterios(cargo="Vendedor", requisitos_obrigatorios=["Vendas"])
+    cvs = tmp_path / "cvs"
+    cvs.mkdir()
+    criar_pandape().rename(cvs / "export.xlsx")
+
+    caminho, resultados = processar_vaga_criterios(vaga, cvs, pasta_saida=tmp_path)
+    assert caminho.exists()
+    assert len(resultados) == 1

@@ -73,13 +73,25 @@ Analise o currículo contra os critérios acima. Retorne APENAS um JSON (sem mar
   "telefone_extraido": "<telefone se encontrado, ou null>"
 }}
 
-REGRAS:
-- classificacao: "aprovado" se atende TODOS os requisitos + boa aderência geral.
-                "reprovado" se não atende a algum requisito obrigatório.
-                "verificar" se está na margem (atende requisitos mas com dúvidas, ou precisa clareza).
-- pontuacao: 0-100. 100 = candidato perfeito. 0 = não atende nada.
+REGRAS DE CLASSIFICAÇÃO:
+- "aprovado": atende TODOS os requisitos obrigatórios e tem boa aderência geral à vaga.
+- "reprovado": não atende claramente pelo menos 1 requisito obrigatório.
+- "verificar": atende os requisitos mas há dúvidas relevantes, informações insuficientes ou pontos que precisam ser confirmados em entrevista.
+
+CALIBRAÇÃO DE PONTUAÇÃO (0-100):
+- 85-100: candidato excelente — atende todos os requisitos e tem diferenciais relevantes
+- 70-84: candidato bom — atende todos os requisitos com boa aderência geral
+- 50-69: candidato razoável — atende a maioria dos requisitos mas com lacunas ou dúvidas em algum ponto
+- 30-49: candidato fraco — não atende pelo menos 1 requisito obrigatório com clareza
+- 0-29: candidato muito inadequado — não atende a maioria dos requisitos
+
+A classificação e a pontuação devem ser consistentes:
+  "aprovado" → pontuação ≥ 70
+  "verificar" → pontuação entre 40 e 84
+  "reprovado" → pontuação ≤ 49
+
 - Se não encontrar nome/email/telefone no CV, coloque null.
-- Justificativa deve ser concisa e objetiva.
+- Justificativa deve ser concisa e objetiva, focada nos critérios da vaga.
 """
 
 

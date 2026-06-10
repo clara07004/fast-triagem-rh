@@ -1,0 +1,14 @@
+[theme]
+primaryColor = "#D21217"
+# Canvas cinza-claro com cards brancos por cima (estilo Materio).
+backgroundColor = "#F4F5FA"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#191A1A"
+
+[browser]
+gatherUsageStats = false
+
+# O lançador (scripts/iniciar_triagem.vbs) abre a janela do app;
+# headless evita que o Streamlit abra uma aba duplicada no navegador padrão.
+[server]
+headless = true
