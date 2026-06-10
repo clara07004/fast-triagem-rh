@@ -54,12 +54,16 @@ Thumbs.db
 data/raw/
 data/processed/
 data/private/
+*.db
 *.csv
 *.xlsx
 *.xls
 *.parquet
 !docs/**/*.csv
-!_starter/**/*.csv
+
+# CVs e saídas de triagem por vaga (dados pessoais e outputs locais)
+vagas/*/cvs/
+vagas/*/triagens/
 
 # Outputs locais (renderizações, screenshots, etc)
 outputs/
