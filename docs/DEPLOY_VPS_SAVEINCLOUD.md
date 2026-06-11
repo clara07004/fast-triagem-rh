@@ -98,20 +98,18 @@ Caddy emite o certificado.)
 > nó (painel → nó → Firewall) e se o `DOMINIO` do `.env` resolve pro IP do
 > VPS (`ping <DOMINIO>` da sua máquina).
 
-## Passo 7 — Migrar os dados da Karina
+## Passo 7 — (Não se aplica) Migrar dados da instalação local
 
-Pra ninguém perder as vagas já cadastradas e o histórico:
+Decisão de junho/2026: as vagas passam a ser cadastradas direto no servidor,
+conforme a demanda — o banco antigo da instalação local **não será migrado**.
+O servidor começa vazio e isso é o esperado.
 
-1. Na máquina da Karina, copie o arquivo `data\triagem.db` e a pasta
-   `vagas\` do diretório do app.
-2. Da sua máquina, envie pro VPS com **WinSCP** (conecte no IP público,
-   usuário `root`, protocolo SFTP) — destino:
-   - `triagem.db` → `/root/fast-triagem-rh/data/`
-   - conteúdo de `vagas\` → `/root/fast-triagem-rh/vagas/`
-3. No Web SSH: `docker compose restart`
-
-Faça isso **antes** de liberar o link pro time, pra ninguém cadastrar vaga em
-banco vazio que depois seria sobrescrito.
+Se um dia for preciso trazer dados de uma instalação local: copiar
+`data\triagem.db` e a pasta `vagas\` da máquina e enviar via SFTP (WinSCP,
+IP público, usuário `root`) pra `/root/fast-triagem-rh/data/` e
+`/root/fast-triagem-rh/vagas/`, e rodar `docker compose restart`. Atenção:
+isso **sobrescreve** o banco do servidor — só faz sentido antes do time
+começar a usar.
 
 ## Passo 8 — (Opcional) Domínio próprio
 
