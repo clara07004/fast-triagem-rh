@@ -121,15 +121,30 @@ Se quiser `triagem.fastdrywall.com.br` em vez do hostname da SaveinCloud:
 
 ## Atualizações futuras
 
-Quando houver mudança no código (push na `main`):
+O deploy real (11/06/2026) foi feito **sem git no servidor**: o código vai
+empacotado da máquina da Clara via `pscp` (PuTTY). Pra publicar uma nova
+versão, rode na raiz do projeto:
 
-```bash
-cd /root/fast-triagem-rh
-git pull
-docker compose up -d --build
+```powershell
+.\scripts\deploy_vps.ps1
 ```
 
-Os dados não são tocados — `data/` e `vagas/` são volumes fora da imagem.
+O script pede a senha root do VPS, empacota o código local, envia e
+reconstrói os containers. Os dados não são tocados — `data/` e `vagas/`
+são volumes fora da imagem.
+
+## Como foi o deploy real (registro)
+
+- VPS criado como **camada adicional** no ambiente `CLARA` (Alterar
+  topologia → bloco VPS) — nó 268825, Ubuntu 22.04, IP `200.150.196.205`,
+  limite 8 cloudlets. As camadas Node.js/LB do outro projeto não foram
+  tocadas.
+- O firewall interno do VPS veio fechado: foi liberado com
+  `iptables -I INPUT -p tcp -m multiport --dports 22,80,443 -j ACCEPT`
+  (via Web SSH do painel) e persistido com `iptables-persistent`.
+- App acessível em
+  `https://node268825-env-0048116.sp1.br.saveincloud.net.br`
+  (HTTPS automático via Caddy/Let's Encrypt).
 
 ## Problemas comuns
 

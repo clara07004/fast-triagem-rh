@@ -7,7 +7,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends tzdata \
     && rm -rf /var/lib/apt/lists/*
 ENV TZ=America/Sao_Paulo \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    STREAMLIT_SERVER_PORT=8501
 
 WORKDIR /app
 
@@ -22,4 +23,5 @@ COPY .streamlit ./.streamlit
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Porta vem de STREAMLIT_SERVER_PORT — sobrescrevível no painel da SaveinCloud.
+CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]
