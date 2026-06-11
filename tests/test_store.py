@@ -62,6 +62,33 @@ def test_desarquivar_traz_de_volta(db):
     assert vagas[0]["arquivada"] == 0
 
 
+def test_excluir_vaga_some_em_definitivo(db):
+    vaga_id = store.salvar_vaga(_criterios(), db_path=db)
+    store.excluir_vaga(vaga_id, db_path=db)
+    assert store.listar_vagas(incluir_arquivadas=True, db_path=db) == []
+
+
+def test_excluir_vaga_preserva_historico(db):
+    vaga_id = store.salvar_vaga(_criterios(), db_path=db)
+    store.registrar_execucao(
+        cargo="Vendedor Técnico",
+        duracao_segundos=10.0,
+        contagens={"aprovado": 2},
+        planilha="triagens/triagem_x.xlsx",
+        vaga_id=vaga_id,
+        db_path=db,
+    )
+    store.excluir_vaga(vaga_id, db_path=db)
+    execucoes = store.listar_execucoes(db_path=db)
+    assert len(execucoes) == 1
+    assert execucoes[0]["cargo"] == "Vendedor Técnico"
+
+
+def test_excluir_vaga_inexistente_falha(db):
+    with pytest.raises(store.StoreError, match="não encontrada"):
+        store.excluir_vaga(999, db_path=db)
+
+
 def test_atualizar_planilha_de_execucao(db):
     execucao_id = store.registrar_execucao(
         cargo="Vendedor Técnico",

@@ -959,12 +959,15 @@ def secao_vagas() -> None:
     if arquivadas:
         st.divider()
         with st.expander(f":material/inventory_2: Vagas arquivadas ({len(arquivadas)})"):
-            st.caption("Arquivar não apaga nada. Restaurar traz a vaga de volta às listas.")
+            st.caption(
+                "Restaurar traz a vaga de volta às listas. Excluir apaga o cadastro "
+                "em definitivo — o histórico de triagens e as planilhas são mantidos."
+            )
             for v in arquivadas:
-                col_info, col_acao = st.columns([4, 1], vertical_alignment="center")
+                col_info, col_rest, col_excl = st.columns([3, 1, 1], vertical_alignment="center")
                 with col_info:
                     st.markdown(f"**{v['cargo']}**  \n:gray[id {v['id']} · arquivada]")
-                with col_acao:
+                with col_rest:
                     if st.button(
                         "Restaurar",
                         key=f"restaurar_{v['id']}",
@@ -975,6 +978,23 @@ def secao_vagas() -> None:
                         st.success(f"Vaga **{v['cargo']}** restaurada.")
                         time.sleep(1)
                         st.rerun()
+                with (
+                    col_excl,
+                    st.popover("Excluir", icon=":material/delete:", width="stretch"),
+                ):
+                        st.markdown(
+                            f"Excluir **{v['cargo']}** em definitivo? Não dá pra desfazer."
+                        )
+                        if st.button(
+                            "Sim, excluir",
+                            key=f"excluir_{v['id']}",
+                            type="primary",
+                            icon=":material/delete_forever:",
+                        ):
+                            store.excluir_vaga(v["id"])
+                            st.success(f"Vaga **{v['cargo']}** excluída.")
+                            time.sleep(1)
+                            st.rerun()
 
 
 # === Seção: Histórico ======================================================

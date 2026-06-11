@@ -126,6 +126,18 @@ def desarquivar_vaga(vaga_id: int, db_path: str | Path = _DB_PADRAO) -> None:
         )
 
 
+def excluir_vaga(vaga_id: int, db_path: str | Path = _DB_PADRAO) -> None:
+    """Apaga o cadastro da vaga em definitivo.
+
+    Só o cadastro: o histórico de execuções (que guarda o cargo em texto)
+    e as planilhas geradas em vagas/<slug>/ ficam intactos.
+    """
+    with _conectar(db_path) as conn:
+        excluidas = conn.execute("DELETE FROM vagas WHERE id = ?", (vaga_id,)).rowcount
+        if not excluidas:
+            raise StoreError(f"Vaga id={vaga_id} não encontrada para excluir.")
+
+
 def _vaga_para_dict(linha: sqlite3.Row) -> dict[str, Any]:
     dados = dict(linha)
     dados["criterios"] = VagaCriterios(**json.loads(dados.pop("criterios_json")))
