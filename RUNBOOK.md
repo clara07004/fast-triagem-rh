@@ -9,7 +9,7 @@
 - **Dona / manutenção:** Clara Barbosa
 - **Criticidade:** média — acelera a triagem, mas há plano B manual (não bloqueia o trabalho).
 - **SLA de negócio:** entrega de perfis aos gestores em até 10 dias.
-- **Ambiente:** execução **local e manual** (CLI), no computador da operadora. Não há serviço rodando em servidor.
+- **Ambiente:** app web central num **VPS (SaveinCloud)**, usado pelo navegador. Vagas, histórico e planilhas ficam no servidor, compartilhados pelo time.
 
 ## O que essa automação faz
 
@@ -19,33 +19,32 @@ Lê os critérios de uma vaga + os currículos (exportação do PandaPé e/ou PD
 
 - **Gatilho:** manual, sob demanda, uma vez por vaga.
 - **Frequência:** quando há uma vaga para triar.
-- **Pelo app (caminho da Karina):** duplo clique no atalho **"Fast Triagem"** da
-  área de trabalho. Ele sobe o servidor local escondido e abre o app numa
-  janela própria.
-- **Pela linha de comando (alternativa técnica):**
+- **Pelo navegador (caminho da Karina):** acessar
+  `https://triagem.fastdrywall.com.br` e informar a senha do time.
+  Funciona de qualquer computador, sem instalar nada.
+- **Pela linha de comando (alternativa técnica, máquina da Clara):**
   ```bash
   python -m fast_triagem_rh --vaga criterios_<vaga>.xlsx --cvs pasta_da_vaga/
   ```
 
-## Instalação em um novo computador
+## Acesso
 
-Pré-requisito: **Python 3.11+** ([python.org](https://python.org), marcando
-*"Add Python to PATH"*) e Chrome ou Edge instalado.
+Não há instalação: o app roda num servidor central e abre direto no navegador
+(Chrome ou Edge). Para dar acesso a alguém do time, basta passar a URL acima e
+a senha do time (quem tem é a Clara) — **por canal seguro**, nunca por
+e-mail/WhatsApp em texto aberto.
 
-1. Clonar o projeto (`git clone https://github.com/clara07004/fast-triagem-rh.git`)
-   ou baixar o ZIP pelo GitHub (*Code → Download ZIP*) e extrair.
-2. Na pasta do projeto, rodar o instalador:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File scripts\instalar.ps1
-   ```
-   Ele confere o Python, instala as dependências, pede a `ANTHROPIC_API_KEY`
-   (pedir à Clara — transferir por canal seguro, nunca por e-mail/WhatsApp em
-   texto aberto) e cria o atalho **"Fast Triagem"** na área de trabalho.
-3. Pronto — duplo clique no atalho abre o app.
+## Atualizar a versão do app (manutenção — Clara)
 
-> O histórico de triagens (`data/`) e os CVs (`vagas/`) são locais de cada
-> computador e **não** vão pro GitHub. Instalação nova começa com histórico
-> zerado — é o esperado.
+Na máquina da Clara, na pasta do projeto:
+
+```powershell
+.\scripts\deploy_vps.ps1
+```
+
+O script empacota o código local, envia ao VPS e reconstrói os containers
+(pede a senha root do servidor). Detalhes e troubleshooting do servidor em
+[docs/DEPLOY_VPS_SAVEINCLOUD.md](docs/DEPLOY_VPS_SAVEINCLOUD.md).
 
 ## ⚠️ Regra de ouro — filtrar no PandaPé antes de exportar
 
@@ -61,58 +60,49 @@ Antes de exportar, **avance a etapa ou aplique os filtros do PandaPé** (localiz
 ## Operação no dia a dia (passo a passo da Karina)
 
 1. **No PandaPé:** filtre/avance a etapa da vaga (ver regra de ouro acima) e **exporte em `.xlsx`** (não CSV).
-2. **Critérios:** abra `criterios_vaga_template.xlsx`, preencha os campos amarelos (cargo, localização, contrato, requisitos obrigatórios, diferenciais) e salve como `criterios_<vaga>.xlsx`.
-3. **Pasta da vaga:** crie uma pasta e coloque dentro o `.xlsx` exportado do PandaPé (e quaisquer PDFs/Word de outras plataformas).
-4. **Rode** o comando acima apontando para o arquivo de critérios e a pasta.
-5. **Revise:** abra `triagem_<vaga>_<data>.xlsx` — comece pela aba **Resumo** (visão geral) e vá para a **Triagem** (lista ranqueada). Leia justificativa e pontos negativos antes de decidir. **A decisão final é sempre sua.**
+2. **No app, seção "Vagas e critérios":** confira se a vaga já existe; se não, cadastre-a (cargo, localização, contrato, requisitos obrigatórios, diferenciais). A vaga fica salva para as próximas triagens.
+3. **Seção "Rodar triagem":** escolha a vaga e arraste a exportação do PandaPé (e quaisquer PDFs/Word de outras plataformas).
+4. **Acompanhe** a barra de progresso até o fim da análise.
+5. **Revise:** o resultado aparece na tela (visão geral, candidatos ranqueados, análise) e a planilha pode ser baixada pelo botão de download. Leia justificativa e pontos negativos antes de decidir. **A decisão final é sempre sua.** Triagens anteriores ficam na seção **"Histórico"**.
 
 ### Verificar se rodou bem
 
-Ao terminar, o script imprime no terminal:
-```
-Triagem concluida — N candidato(s) processado(s).
-   X aprovados, Y para verificar, Z reprovados.
-Planilha gerada: triagem_<vaga>_<data>.xlsx
-```
-Se aparecer isso e a planilha foi criada, deu certo. Erros aparecem como `[ERRO] ...` em linguagem simples.
+Ao terminar, o app mostra o painel da triagem — total de candidatos, aprovados, para verificar, reprovados — e o botão para baixar a planilha. Se isso apareceu, deu certo. Erros aparecem na própria tela, em linguagem simples.
 
 ### Pausar / reiniciar / forçar execução
 
-Não se aplica — a automação não é um serviço contínuo. Cada execução é manual e sob demanda. Para interromper no meio, `Ctrl+C` no terminal (nenhum dado é perdido; basta rodar de novo).
+Cada triagem é manual e sob demanda. Para interromper no meio, feche ou recarregue a página (nenhum dado é perdido; basta rodar de novo). O app em si fica sempre no ar: os containers reiniciam sozinhos se o servidor reiniciar.
 
 ## Problemas conhecidos e como resolver
 
 | Sintoma | Causa provável | Como resolver |
 |---|---|---|
-| Travou por mais de 1h / custo alto | Exportou "Inscritos" cru (1000+ candidatos) | Cancele (`Ctrl+C`), filtre no PandaPé e exporte um subconjunto |
-| `[ERRO] ... Permission denied` ao gerar a planilha | A planilha de saída está **aberta no Excel** | Feche o arquivo no Excel e rode de novo |
+| A URL não abre / app fora do ar | Servidor ou containers parados | Chame a **Clara** (verificar os containers no VPS) |
+| Travou por mais de 1h / custo alto | Exportou "Inscritos" cru (1000+ candidatos) | Recarregue a página, filtre no PandaPé e rode de novo com a exportação filtrada |
 | `Headers obrigatórios não encontrados` | O arquivo não é uma exportação válida do PandaPé (ou veio em CSV) | Reexporte a vaga em **.xlsx** pelo PandaPé |
-| `Critérios inválidos` / sem requisito | Template de critérios sem nenhum requisito obrigatório preenchido | Preencha ao menos **um** requisito obrigatório |
-| `A chave da Claude API não foi encontrada` | `.env` ausente ou sem `ANTHROPIC_API_KEY` | Copie `.env.example` para `.env` e preencha a chave |
+| Erro ao salvar a vaga / critérios inválidos | Vaga sem nenhum requisito obrigatório preenchido | Preencha ao menos **um** requisito obrigatório |
+| "A chave da Claude API não foi encontrada" | `.env` do servidor ausente ou sem `ANTHROPIC_API_KEY` | Chame a **Clara** (configurar o `.env` no servidor) |
 | Localização imprecisa no ranqueamento | Dado de cidade/estado vem incompleto do PandaPé (ex: cidade vazia, estado = "Brasil") | Revise manualmente esses candidatos |
 | "Não menciona Excel/Word" recorrente nos pontos negativos | Requisito difícil de comprovar pelo texto do CV | Confirme na entrevista, ou mova "pacote Office" de obrigatório para diferencial |
 
 ## Em caso de falha
 
-1. Leia a mensagem `[ERRO]` — ela é escrita em linguagem simples.
+1. Leia a mensagem de erro na tela — ela é escrita em linguagem simples.
 2. Procure o sintoma na tabela acima.
-3. Se não resolver, chame a **Clara** com o print da mensagem do terminal.
+3. Se não resolver, chame a **Clara** com o print da tela.
 
 ## Onde estão os logs
 
-- **Local:** terminal (stdout) durante a execução. **Não são salvos em arquivo** por padrão.
-- **Para guardar um log:** redirecione a saída, ex:
-  ```bash
-  python -m fast_triagem_rh --vaga criterios_x.xlsx --cvs pasta/ > triagem.log 2>&1
-  ```
+- **No servidor:** `docker logs fast-triagem` (via Web SSH da SaveinCloud ou PuTTY — acesso da Clara).
+- **Execução via CLI (alternativa técnica):** terminal (stdout); para guardar, redirecione a saída (`> triagem.log 2>&1`).
 - Campos sensíveis (chaves, tokens) são mascarados automaticamente no log.
 
 ## Onde estão as credenciais
 
-- **Armazenamento:** arquivo `.env` local (ignorado pelo Git — nunca é commitado).
-- **Variável:** `ANTHROPIC_API_KEY` (Claude API).
-- **Quem tem acesso:** Clara Barbosa.
-- **Como rotacionar:** gerar nova chave no console da Anthropic (console.anthropic.com), substituir no `.env` e revogar a antiga.
+- **Armazenamento:** arquivo `.env` no servidor (`/root/fast-triagem-rh`), fora do Git.
+- **Variáveis:** `ANTHROPIC_API_KEY` (Claude API) e `TRIAGEM_SENHA` (senha do time no app).
+- **Quem tem acesso:** Clara Barbosa (inclusive a senha root do VPS).
+- **Como rotacionar:** gerar nova chave no console da Anthropic (console.anthropic.com), substituir no `.env` do servidor, reiniciar os containers e revogar a antiga. Para trocar a senha do time, alterar `TRIAGEM_SENHA` no mesmo `.env` e reiniciar.
 
 ## Dependências externas
 
@@ -120,6 +110,7 @@ Não se aplica — a automação não é um serviço contínuo. Cada execução 
 |---|---|
 | Claude API (Anthropic) | A análise não roda. Fallback: triagem manual. Custo é por candidato analisado. |
 | PandaPé | Sem a exportação não há candidatos para triar. É a fonte principal de CVs. |
+| VPS SaveinCloud | App fora do ar para o time. Fallback: rodar via CLI na máquina da Clara, ou triagem manual. |
 
 ## Plano de Disaster Recovery
 

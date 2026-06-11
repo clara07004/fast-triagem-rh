@@ -32,4 +32,4 @@ Write-Host "Reconstruindo containers (3-5 min)..."
 & $Plink -batch -ssh "root@$VpsIp" -pw $senhaTexto -hostkey $HostKey `
     "tar -xzf /root/fast-triagem-deploy.tar.gz -C /root/fast-triagem-rh && cd /root/fast-triagem-rh && docker compose up -d --build > /tmp/build.log 2>&1; docker compose ps"
 
-Write-Host "`nPronto. Teste: https://node268825-env-0048116.sp1.br.saveincloud.net.br"
+Write-Host "`nPronto. Teste: https://triagem.fastdrywall.com.br"

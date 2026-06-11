@@ -142,9 +142,11 @@ são volumes fora da imagem.
 - O firewall interno do VPS veio fechado: foi liberado com
   `iptables -I INPUT -p tcp -m multiport --dports 22,80,443 -j ACCEPT`
   (via Web SSH do painel) e persistido com `iptables-persistent`.
-- App acessível em
-  `https://node268825-env-0048116.sp1.br.saveincloud.net.br`
-  (HTTPS automático via Caddy/Let's Encrypt).
+- App acessível em `https://triagem.fastdrywall.com.br` (HTTPS automático
+  via Caddy/Let's Encrypt). O endereço da SaveinCloud
+  (`node268825-env-0048116...`) foi usado só até a TI criar o registro A
+  `triagem.fastdrywall.com.br → 200.150.196.205` em 11/06/2026 — depois disso
+  o `DOMINIO` do `.env` foi trocado e o caddy recriado.
 
 ## Problemas comuns
 
@@ -152,8 +154,8 @@ são volumes fora da imagem.
 |---|---|---|
 | Página não abre | Container parado ou firewall | `docker compose ps` / `logs`; liberar portas 80 e 443 no painel |
 | "Conexão não é segura" persistente | Caddy não conseguiu emitir o certificado | `docker compose logs caddy`; conferir `DOMINIO` no `.env` e o DNS |
-| Pede senha mas nenhuma funciona | `TRIAGEM_SENHA` diferente do combinado | Conferir `.env` e `docker compose restart` |
-| Triagem falha na análise | `ANTHROPIC_API_KEY` ausente/errada | Conferir `.env` e `docker compose restart` |
+| Pede senha mas nenhuma funciona | `TRIAGEM_SENHA` diferente do combinado | Conferir `.env` e `docker compose up -d --force-recreate triagem` (restart **não** relê o `.env`) |
+| Triagem falha na análise | `ANTHROPIC_API_KEY` ausente/errada | Conferir `.env` e `docker compose up -d --force-recreate triagem` (restart **não** relê o `.env`) |
 | Sumiu vaga/histórico após update | Volume não montado | Conferir se rodou o compose de dentro de `/root/fast-triagem-rh` |
 | App lento ou caiu após reinício do VPS | Docker não subiu junto | `systemctl enable docker` e `docker compose up -d` |
 
