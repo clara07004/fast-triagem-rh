@@ -52,6 +52,16 @@ def test_arquivar_esconde_da_listagem(db):
     assert len(store.listar_vagas(incluir_arquivadas=True, db_path=db)) == 1
 
 
+def test_desarquivar_traz_de_volta(db):
+    vaga_id = store.salvar_vaga(_criterios(), db_path=db)
+    store.arquivar_vaga(vaga_id, db_path=db)
+    store.desarquivar_vaga(vaga_id, db_path=db)
+    vagas = store.listar_vagas(db_path=db)
+    assert len(vagas) == 1
+    assert vagas[0]["id"] == vaga_id
+    assert vagas[0]["arquivada"] == 0
+
+
 def test_atualizar_planilha_de_execucao(db):
     execucao_id = store.registrar_execucao(
         cargo="Vendedor Técnico",

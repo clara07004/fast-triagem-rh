@@ -117,6 +117,15 @@ def arquivar_vaga(vaga_id: int, db_path: str | Path = _DB_PADRAO) -> None:
         )
 
 
+def desarquivar_vaga(vaga_id: int, db_path: str | Path = _DB_PADRAO) -> None:
+    """Traz uma vaga arquivada de volta às listagens."""
+    with _conectar(db_path) as conn:
+        conn.execute(
+            "UPDATE vagas SET arquivada = 0, atualizada_em = ? WHERE id = ?",
+            (_agora(), vaga_id),
+        )
+
+
 def _vaga_para_dict(linha: sqlite3.Row) -> dict[str, Any]:
     dados = dict(linha)
     dados["criterios"] = VagaCriterios(**json.loads(dados.pop("criterios_json")))

@@ -945,12 +945,36 @@ def secao_vagas() -> None:
     if vaga_atual:
         st.divider()
         with st.expander(":material/archive: Arquivar esta vaga"):
-            st.caption("A vaga some das listas, mas o histórico de triagens dela é mantido.")
+            st.caption(
+                "A vaga some das listas, mas nada é apagado — o histórico fica e "
+                "dá pra restaurar em **Vagas arquivadas**, aqui embaixo."
+            )
             if st.button("Confirmar arquivamento", icon=":material/archive:"):
                 store.arquivar_vaga(vaga_atual["id"])
                 st.success("Vaga arquivada.")
                 time.sleep(1)
                 st.rerun()
+
+    arquivadas = [v for v in store.listar_vagas(incluir_arquivadas=True) if v["arquivada"]]
+    if arquivadas:
+        st.divider()
+        with st.expander(f":material/inventory_2: Vagas arquivadas ({len(arquivadas)})"):
+            st.caption("Arquivar não apaga nada. Restaurar traz a vaga de volta às listas.")
+            for v in arquivadas:
+                col_info, col_acao = st.columns([4, 1], vertical_alignment="center")
+                with col_info:
+                    st.markdown(f"**{v['cargo']}**  \n:gray[id {v['id']} · arquivada]")
+                with col_acao:
+                    if st.button(
+                        "Restaurar",
+                        key=f"restaurar_{v['id']}",
+                        icon=":material/unarchive:",
+                        width="stretch",
+                    ):
+                        store.desarquivar_vaga(v["id"])
+                        st.success(f"Vaga **{v['cargo']}** restaurada.")
+                        time.sleep(1)
+                        st.rerun()
 
 
 # === Seção: Histórico ======================================================
