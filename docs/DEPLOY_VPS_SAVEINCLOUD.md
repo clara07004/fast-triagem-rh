@@ -161,6 +161,5 @@ são volumes fora da imagem.
 
 - [ ] Atualizar o `RUNBOOK.md`: o "como abrir o app" vira "acesse o link e
       digite a senha do time".
-- [ ] Repassar URL + senha pra Karina e time de R&S.
-- [ ] Desativar o atalho local da Karina depois de uma semana de uso estável
-      (evita ela alimentar o banco antigo sem querer).
+- [ ] Repassar URL + senha pra Karina e time de R&S. (O app local nunca chegou
+      a ser usado de verdade — o servidor é o primeiro uso real, do zero.)
