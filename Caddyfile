@@ -1,0 +1,6 @@
+# Proxy HTTPS do Fast Triagem.
+# DOMINIO vem do .env (ex.: triagem.fastdrywall.com.br ou o hostname do VPS).
+# O Caddy emite e renova o certificado Let's Encrypt sozinho.
+{$DOMINIO} {
+	reverse_proxy triagem:8501
+}

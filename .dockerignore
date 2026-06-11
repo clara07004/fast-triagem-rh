@@ -1,0 +1,27 @@
+# Fora da imagem: dados locais (viram volumes), dev e docs.
+.git
+.github
+.claude
+.pytest_cache
+.ruff_cache
+__pycache__
+**/__pycache__
+.venv
+node_modules
+tests
+scripts
+docs
+_contexto
+data
+vagas
+.env
+.env.example
+.pre-commit-config.yaml
+Caddyfile
+docker-compose.yml
+Makefile
+package.json
+package-lock.json
+criterios_vaga_template.xlsx
+*.md
+!README.md

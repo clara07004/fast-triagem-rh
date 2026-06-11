@@ -1,0 +1,36 @@
+# Fast Triagem no VPS da SaveinCloud — guia em docs/DEPLOY_VPS_SAVEINCLOUD.md
+#
+# Dois serviços:
+#   triagem — o app Streamlit (só visível dentro da rede do compose)
+#   caddy   — proxy na porta 80/443 com HTTPS automático (Let's Encrypt)
+#
+# .env no servidor precisa ter: ANTHROPIC_API_KEY, TRIAGEM_SENHA e DOMINIO.
+services:
+  triagem:
+    build: .
+    container_name: fast-triagem
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "8501"
+    volumes:
+      # O que sobrevive a atualizações e redeploys:
+      - ./data:/app/data # banco (vagas cadastradas + histórico)
+      - ./vagas:/app/vagas # CVs e planilhas geradas por vaga
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: fast-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    env_file: .env # fornece o DOMINIO usado no Caddyfile
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # certificados Let's Encrypt
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

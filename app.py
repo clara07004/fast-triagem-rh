@@ -13,6 +13,7 @@ Rodar:  atalho "Fast Triagem" da área de trabalho (scripts/criar_atalho.ps1
 
 from __future__ import annotations
 
+import hmac
 import os
 import re
 import sys
@@ -1073,6 +1074,35 @@ SECOES = {
 }
 
 
+def _porta_de_acesso() -> bool:
+    """Pede a senha do time quando o app roda num servidor.
+
+    Só ativa quando TRIAGEM_SENHA está definida no ambiente; no uso local
+    (sem a variável) o app abre direto, como sempre.
+    """
+    senha = os.getenv("TRIAGEM_SENHA", "").strip()
+    if not senha or st.session_state.get("acesso_liberado"):
+        return True
+
+    _, centro, _ = st.columns([1, 1.1, 1])
+    with centro:
+        st.write("")
+        st.write("")
+        if LOGO.exists():
+            st.image(str(LOGO), width=180)
+        st.markdown("### Triagem de Candidatos")
+        st.caption("Acesso restrito ao time de R&S da Fast.")
+        with st.form("acesso"):
+            tentativa = st.text_input("Senha do time", type="password")
+            entrar = st.form_submit_button("Entrar", type="primary", use_container_width=True)
+        if entrar:
+            if hmac.compare_digest(tentativa, senha):
+                st.session_state["acesso_liberado"] = True
+                st.rerun()
+            st.error("Senha incorreta. Confira com a Clara Barbosa.")
+    return False
+
+
 def main() -> None:
     with st.sidebar:
         if LOGO.exists():
@@ -1089,4 +1119,5 @@ def main() -> None:
     SECOES[secao]()
 
 
-main()
+if _porta_de_acesso():
+    main()
