@@ -1,8 +1,9 @@
 """Testes do analyzer sem tocar na Claude API.
 
 A construção do cliente Anthropic e a chamada HTTP são substituídas por stubs.
-O foco é a lógica local: atalho de CV vazio, parsing do JSON da IA (inclusive
-embrulhado em markdown) e o tratamento de resposta inválida.
+O foco é a lógica local: atalho de CV vazio, mapeamento do JSON da IA para
+ResultadoCandidato e o tratamento de resposta fora do contrato (rede de
+segurança — o structured output da API normalmente garante o formato).
 """
 
 from __future__ import annotations
@@ -23,8 +24,8 @@ def vaga():
 
 @pytest.fixture
 def sem_api(monkeypatch):
-    """Neutraliza a construção do cliente Anthropic (não há rede nos testes)."""
-    monkeypatch.setattr(analyzer, "Anthropic", lambda: object())
+    """Neutraliza a obtenção do cliente Anthropic (não há rede nos testes)."""
+    monkeypatch.setattr(analyzer, "_get_client", lambda: object())
 
 
 def _stub_resposta(monkeypatch, texto: str):
@@ -59,18 +60,31 @@ def test_json_valido_e_parseado(vaga, sem_api, monkeypatch):
     assert "21 99999-0000" in r.contato
 
 
-def test_json_embrulhado_em_markdown(vaga, sem_api, monkeypatch):
+def test_campos_de_contato_nulos_viram_none(vaga, sem_api, monkeypatch):
     payload = {
         "classificacao": "verificar", "pontuacao": 55,
         "pontos_positivos": [], "pontos_negativos": [],
         "justificativa": "Na margem.", "nome_extraido": None,
         "email_extraido": None, "telefone_extraido": None,
     }
-    _stub_resposta(monkeypatch, "```json\n" + json.dumps(payload) + "\n```")
+    _stub_resposta(monkeypatch, json.dumps(payload))
 
     r = analisar_candidato(vaga, "texto", nome_arquivo="x.pdf")
     assert r.classificacao == "verificar"
     assert r.contato is None
+
+
+def test_classificacao_fora_do_enum_vira_erro_api(vaga, sem_api, monkeypatch):
+    payload = {
+        "classificacao": "talvez", "pontuacao": 55,
+        "pontos_positivos": [], "pontos_negativos": [],
+        "justificativa": "?", "nome_extraido": None,
+        "email_extraido": None, "telefone_extraido": None,
+    }
+    _stub_resposta(monkeypatch, json.dumps(payload))
+
+    r = analisar_candidato(vaga, "texto", nome_arquivo="x.pdf")
+    assert r.classificacao == "erro_api"
 
 
 def test_resposta_nao_json_vira_erro_api(vaga, sem_api, monkeypatch):

@@ -9,7 +9,12 @@ from __future__ import annotations
 import json
 from datetime import datetime
 
-from anthropic import Anthropic
+from anthropic import (
+    Anthropic,
+    APIConnectionError,
+    InternalServerError,
+    RateLimitError,
+)
 from pydantic import ValidationError
 from tenacity import (
     after_log,
@@ -28,6 +33,47 @@ log = get_logger(__name__)
 
 class AnalyzerError(Exception):
     """Erro ao analisar candidato com IA."""
+
+
+# Cliente único do processo — lazy para não exigir ANTHROPIC_API_KEY no import.
+# Reusado entre candidatos (mantém conexões HTTP vivas em vez de recriar tudo).
+_client: Anthropic | None = None
+
+
+def _get_client() -> Anthropic:
+    global _client
+    if _client is None:
+        _client = Anthropic()
+    return _client
+
+
+# Schema da resposta da IA — o structured output da API garante JSON válido
+# nesse formato, sem wrapper de markdown nem campos fora do contrato.
+# (Limites numéricos de pontuacao ficam por conta do Pydantic em ResultadoCandidato.)
+_SCHEMA_ANALISE = {
+    "type": "object",
+    "properties": {
+        "classificacao": {"type": "string", "enum": ["aprovado", "reprovado", "verificar"]},
+        "pontuacao": {"type": "integer"},
+        "pontos_positivos": {"type": "array", "items": {"type": "string"}},
+        "pontos_negativos": {"type": "array", "items": {"type": "string"}},
+        "justificativa": {"type": "string"},
+        "nome_extraido": {"type": ["string", "null"]},
+        "email_extraido": {"type": ["string", "null"]},
+        "telefone_extraido": {"type": ["string", "null"]},
+    },
+    "required": [
+        "classificacao",
+        "pontuacao",
+        "pontos_positivos",
+        "pontos_negativos",
+        "justificativa",
+        "nome_extraido",
+        "email_extraido",
+        "telefone_extraido",
+    ],
+    "additionalProperties": False,
+}
 
 
 def _montar_prompt(vaga: VagaCriterios, texto_cv: str) -> str:
@@ -60,18 +106,9 @@ CURRÍCULO DO CANDIDATO:
 
 ---
 
-Analise o currículo contra os critérios acima. Retorne APENAS um JSON (sem markdown, sem explicação adicional) com esta estrutura:
-
-{{
-  "classificacao": "aprovado" | "reprovado" | "verificar",
-  "pontuacao": <número 0-100>,
-  "pontos_positivos": [<lista de 2-3 pontos fortes do candidato>],
-  "pontos_negativos": [<lista de 2-3 pontos fracos ou dúvidas>],
-  "justificativa": "<2-3 frases explicando a classificação>",
-  "nome_extraido": "<nome do candidato se encontrado, ou null>",
-  "email_extraido": "<email se encontrado, ou null>",
-  "telefone_extraido": "<telefone se encontrado, ou null>"
-}}
+Analise o currículo contra os critérios acima e preencha a resposta estruturada:
+pontos_positivos e pontos_negativos com 2-3 itens cada; nome, email e telefone
+extraídos do CV (ou null se não encontrados).
 
 REGRAS DE CLASSIFICAÇÃO:
 - "aprovado": atende TODOS os requisitos obrigatórios e tem boa aderência geral à vaga.
@@ -98,14 +135,21 @@ A classificação e a pontuação devem ser consistentes:
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
-    retry=retry_if_exception_type((Exception,)),
+    # Só erros transitórios da API. Erro de chave (AuthenticationError), request
+    # inválido ou bug de código falham direto, sem 3 tentativas inúteis.
+    retry=retry_if_exception_type((APIConnectionError, RateLimitError, InternalServerError)),
     after=after_log(log, 20),
 )
 def _chamar_claude(client: Anthropic, prompt: str) -> str:
-    """Chama Claude API com retry automático."""
+    """Chama Claude API com retry automático.
+
+    O structured output (output_config.format) garante que o texto retornado
+    é JSON válido no formato de _SCHEMA_ANALISE.
+    """
     message = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
+        output_config={"format": {"type": "json_schema", "schema": _SCHEMA_ANALISE}},
         messages=[{"role": "user", "content": prompt}],
     )
     return message.content[0].text
@@ -146,20 +190,11 @@ def analisar_candidato(
 
         # Montar e enviar prompt
         prompt = _montar_prompt(vaga, texto_cv)
+        resposta_texto = _chamar_claude(_get_client(), prompt)
 
-        client = Anthropic()
-        resposta_texto = _chamar_claude(client, prompt)
-
-        # Parsear JSON da resposta
-        # A resposta pode vir com markdown (```json ... ```), remover
-        resposta_json = resposta_texto.strip()
-        if resposta_json.startswith("```"):
-            resposta_json = resposta_json.split("```")[1]
-            if resposta_json.startswith("json"):
-                resposta_json = resposta_json[4:]
-            resposta_json = resposta_json.strip()
-
-        dados_ia = json.loads(resposta_json)
+        # Structured output garante JSON puro; o except abaixo fica como rede
+        # de segurança caso a API devolva algo fora do contrato.
+        dados_ia = json.loads(resposta_texto)
 
         # Mapear nome e contato
         nome = dados_ia.get("nome_extraido")
@@ -175,7 +210,7 @@ def analisar_candidato(
                 partes.append(telefone)
             contato = " / ".join(partes)
 
-        # Criar resultado
+        # Criar resultado — o construtor do Pydantic já valida tipos e limites.
         resultado = ResultadoCandidato(
             nome=nome,
             contato=contato,
@@ -188,16 +223,13 @@ def analisar_candidato(
             data_triagem=datetime.now(),
         )
 
-        # Validar com Pydantic (garante tipos corretos)
-        resultado_validado = ResultadoCandidato(**resultado.model_dump())
-
         log.info(
             f"Candidato analisado: {nome or 'sem nome'} | "
-            f"Classificacao: {resultado_validado.classificacao} "
-            f"({resultado_validado.pontuacao}/100)"
+            f"Classificacao: {resultado.classificacao} "
+            f"({resultado.pontuacao}/100)"
         )
 
-        return resultado_validado
+        return resultado
 
     except json.JSONDecodeError as exc:
         log.error(f"Resposta da IA não é JSON válido: {exc}")

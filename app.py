@@ -14,8 +14,10 @@ Rodar:  atalho "Fast Triagem" da área de trabalho (scripts/criar_atalho.ps1
 from __future__ import annotations
 
 import hmac
+import html
 import os
 import re
+import shutil
 import sys
 import tempfile
 import time
@@ -327,12 +329,21 @@ st.markdown(
 
 
 # === Componentes visuais ===================================================
+def _esc(valor) -> str:
+    """Escapa dado externo (CV de candidato, cadastro) antes de virar HTML.
+
+    Obrigatório em tudo que entra num st.markdown(unsafe_allow_html=True):
+    nome/contato vêm do CV do candidato — fonte não confiável.
+    """
+    return html.escape(str(valor))
+
+
 def _banner(titulo: str, subtitulo: str = "") -> None:
-    sub = f"<p>{subtitulo}</p>" if subtitulo else ""
+    sub = f"<p>{_esc(subtitulo)}</p>" if subtitulo else ""
     st.markdown(
         f"<div class='fast-banner'>"
         f"<div class='eyebrow'>Fast · Recrutamento &amp; Seleção</div>"
-        f"<h1>{titulo}</h1>{sub}</div>",
+        f"<h1>{_esc(titulo)}</h1>{sub}</div>",
         unsafe_allow_html=True,
     )
 
@@ -450,8 +461,8 @@ def _podio(resultados: list[dict], topo: int = 5) -> None:
         st.markdown(
             f"<div class='podio'>"
             f"<span class='nota' style='color:{cor};'>{r['pontuacao']}</span>"
-            f"<div class='nome'><span class='pos'>{i:02d}</span>{r['nome'] or '—'}</div>"
-            f"<div class='meta'>{r['contato'] or 'sem contato'}</div>"
+            f"<div class='nome'><span class='pos'>{i:02d}</span>{_esc(r['nome'] or '—')}</div>"
+            f"<div class='meta'>{_esc(r['contato'] or 'sem contato')}</div>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -545,7 +556,7 @@ def _detalhe_candidato(resultados: list[dict]) -> None:
                 f"<div style='text-align:right; margin-top:4px;'>"
                 f"<span class='selo' style='background:{cor['suave']}; "
                 f"color:{cor['forte']};'>"
-                f"{ROTULOS.get(r['classificacao'], r['classificacao'])}</span></div>",
+                f"{_esc(ROTULOS.get(r['classificacao'], r['classificacao']))}</span></div>",
                 unsafe_allow_html=True,
             )
 
@@ -618,8 +629,28 @@ def _dashboard_resultado(estado: dict) -> None:
 
 
 # === Helpers de dados ======================================================
+@st.cache_resource
+def _limpar_uploads_orfaos() -> None:
+    """Remove pastas de upload deixadas por execuções anteriores do processo.
+
+    Roda uma vez por boot (cache_resource), antes de existir qualquer sessão —
+    sem isso, uploads de sessões abandonadas acumulam no disco do servidor.
+    """
+    for pasta in Path(tempfile.gettempdir()).glob("fast_triagem_*"):
+        shutil.rmtree(pasta, ignore_errors=True)
+
+
 def _salvar_uploads(arquivos) -> Path:
+    """Salva os uploads numa pasta temporária, uma por sessão.
+
+    O Streamlit reexecuta o script a cada interação; sem limpar a pasta
+    anterior, cada rerun com arquivos no uploader criaria um tempdir novo.
+    """
+    anterior = st.session_state.get("pasta_uploads")
+    if anterior:
+        shutil.rmtree(anterior, ignore_errors=True)
     pasta = Path(tempfile.mkdtemp(prefix="fast_triagem_"))
+    st.session_state["pasta_uploads"] = str(pasta)
     for arq in arquivos:
         (pasta / arq.name).write_bytes(arq.getbuffer())
     return pasta
@@ -705,6 +736,11 @@ def _executar_triagem(vaga: dict, pasta_cvs: Path) -> None:
         barra.empty()
         st.error(f"Erro inesperado: {exc}. Se persistir, chame a Clara com o print desta tela.")
         return
+    finally:
+        # Uploads já foram consumidos — não deixa a pasta acumular no servidor.
+        shutil.rmtree(pasta_cvs, ignore_errors=True)
+        if st.session_state.get("pasta_uploads") == str(pasta_cvs):
+            del st.session_state["pasta_uploads"]
 
     duracao = time.monotonic() - cronometro
     barra.empty()
@@ -1148,6 +1184,7 @@ def _porta_de_acesso() -> bool:
 
 
 def main() -> None:
+    _limpar_uploads_orfaos()
     with st.sidebar:
         if LOGO.exists():
             st.image(str(LOGO), width=180)
