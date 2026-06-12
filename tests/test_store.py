@@ -107,6 +107,23 @@ def test_atualizar_planilha_execucao_inexistente_falha(db):
         store.atualizar_planilha(999, "x.xlsx", db_path=db)
 
 
+def test_excluir_execucao_some_do_historico(db):
+    execucao_id = store.registrar_execucao(
+        cargo="Vendedor Técnico",
+        duracao_segundos=10.0,
+        contagens={"aprovado": 1},
+        planilha="triagens/triagem_x.xlsx",
+        db_path=db,
+    )
+    store.excluir_execucao(execucao_id, db_path=db)
+    assert store.listar_execucoes(db_path=db) == []
+
+
+def test_excluir_execucao_inexistente_falha(db):
+    with pytest.raises(store.StoreError, match="não encontrada"):
+        store.excluir_execucao(999, db_path=db)
+
+
 def test_registrar_e_listar_execucao(db):
     vaga_id = store.salvar_vaga(_criterios(), db_path=db)
     store.registrar_execucao(

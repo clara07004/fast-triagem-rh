@@ -1144,6 +1144,23 @@ def secao_historico() -> None:
                     )
                 else:
                     st.caption("Planilha não encontrada — foi movida ou apagada.")
+                with st.popover("Excluir", icon=":material/delete:"):
+                    st.markdown(
+                        "Excluir esta triagem do histórico? A planilha dela também "
+                        "será apagada. Não dá pra desfazer."
+                    )
+                    if st.button(
+                        "Sim, excluir",
+                        key=f"excluir_exec_{execucao['id']}",
+                        type="primary",
+                        icon=":material/delete_forever:",
+                    ):
+                        if planilha:
+                            planilha.unlink(missing_ok=True)
+                        store.excluir_execucao(execucao["id"])
+                        st.success("Triagem excluída.")
+                        time.sleep(1)
+                        st.rerun()
 
 
 # === Navegação =============================================================

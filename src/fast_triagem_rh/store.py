@@ -192,6 +192,20 @@ def listar_execucoes(limite: int = 100, db_path: str | Path = _DB_PADRAO) -> lis
     return [dict(linha) for linha in linhas]
 
 
+def excluir_execucao(execucao_id: int, db_path: str | Path = _DB_PADRAO) -> None:
+    """Apaga uma execução do histórico em definitivo.
+
+    Só o registro: a exclusão da planilha gerada (se desejada) é
+    responsabilidade de quem chama — o store não toca no filesystem.
+    """
+    with _conectar(db_path) as conn:
+        excluidas = conn.execute(
+            "DELETE FROM execucoes WHERE id = ?", (execucao_id,)
+        ).rowcount
+        if not excluidas:
+            raise StoreError(f"Execução id={execucao_id} não encontrada para excluir.")
+
+
 def atualizar_planilha(
     execucao_id: int, planilha: str | Path, db_path: str | Path = _DB_PADRAO
 ) -> None:
