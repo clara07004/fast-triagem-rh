@@ -1,6 +1,4 @@
-# Fast — Template de Automação Interna
-
-> Esse arquivo é o ponto de entrada do contexto pro Claude Code. Quando você clonar esse template pra começar um projeto novo, **edite as seções marcadas com `[PREENCHER]`** ou rode `/novo-projeto` que faz isso por entrevista.
+# Fast — Triagem de Candidatos (R&S)
 
 ## Sobre esse projeto
 
@@ -73,19 +71,17 @@ Esses arquivos vêm do template e definem o piso comum de todos os projetos.
 ## Padrão de trabalho
 
 1. Toda automação nova começa por esse template.
-2. Roda `./init.sh` (ou `init.ps1` no Windows) pra escolher stack (Python/Node) e gerar starter.
-3. Roda `/novo-projeto` pra estruturar via entrevista — preenche CLAUDE.md, PROJECT_BRIEF, etc.
-4. Roda `/planejar-automacao` pra arquitetura.
-5. Roda `/gerar-tarefas` pra backlog.
-6. Implementa, com commits em Conventional Commits (ver `CONTRIBUTING.md`).
-7. Antes de produção: preenche `RUNBOOK.md`.
-8. Em produção: registra incidentes em `POSTMORTEM.md` e decisões grandes em `ADR/`.
+2. Roda `/novo-projeto` pra estruturar via entrevista — preenche CLAUDE.md, PROJECT_BRIEF, etc.
+3. Roda `/planejar-automacao` pra arquitetura.
+4. Roda `/gerar-tarefas` pra backlog.
+5. Implementa, com commits em Conventional Commits (ver `CONTRIBUTING.md`).
+6. Antes de produção: preenche `RUNBOOK.md`.
+7. Em produção: registra incidentes em `POSTMORTEM.md` e decisões grandes em `ADR/`.
 
 ## Onde tudo vive
 
 - `_contexto/` — memória compartilhada do template (empresa + padrões).
-- `_starter/` — starters de stack (python e node). O `init.sh` move o escolhido pra raiz.
-- `docs/` — templates de documentos do ciclo de vida do projeto.
+- `docs/` — documentos do ciclo de vida do projeto (brief, solution design, backlog, deploy).
 - `.claude/` — comandos e skills do Claude Code.
 - `.github/` — workflows de CI, templates de issue/PR.
 - `CONTRIBUTING.md`, `SECURITY.md`, `.env.example`, `.pre-commit-config.yaml` — governança.
